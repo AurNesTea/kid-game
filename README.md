@@ -87,8 +87,8 @@ npm run build
 - [x] Phase 1：遊戲核心流程 + UI 元件拆分（QuestionCard, ScoreBar, Confetti）
 - [ ] Phase 2：導覽層（年級 → 科目 → 單元選擇）
 - [ ] Phase 3–4：數學引擎通用化 + 1 年級題庫
-- [ ] Phase 5–7：3、2、4 年級數學題庫
-- [ ] Phase 8：英文出題引擎
+- [ ] Phase 5：英文出題引擎 + 字彙表
+- [ ] Phase 6–8：3、2、4 年級數學題庫
 - [ ] Phase 9：UI 精修 & RWD
 - [ ] Phase 10：Netlify 正式部署
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, Navigate } from 'react-router-dom'
 import { useGame } from '../hooks/useGame'
+import { getModeConfig } from '../data/registry'
 import QuestionCard from '../components/QuestionCard'
 import ScoreBar from '../components/ScoreBar'
 
@@ -8,7 +9,14 @@ export default function GamePage() {
   const location = useLocation()
   const navigate = useNavigate()
   const mode = location.state?.mode ?? 'addition'
+  const grade = location.state?.grade
+  const subject = location.state?.subject
   const inputRef = useRef(null)
+
+  // Route Guard：防止直接輸入 URL 進入遊戲頁
+  if (!location.state?.mode) {
+    return <Navigate to="/" replace />
+  }
 
   const {
     currentQuestion,
@@ -20,7 +28,7 @@ export default function GamePage() {
     feedback,
     submitAnswer,
     handleKeyDown,
-  } = useGame(mode)
+  } = useGame(mode, grade, subject)
 
   // 每題切換後自動 focus input
   useEffect(() => {
@@ -31,17 +39,14 @@ export default function GamePage() {
 
   if (!currentQuestion) return null
 
-  const modeLabel = mode === 'addition' ? '加法練習' : '減法練習'
-  const modeColor = mode === 'addition'
-    ? 'from-green-400 to-emerald-600'
-    : 'from-rose-400 to-pink-600'
+  const { label: modeLabel, color: modeColor } = getModeConfig(grade, subject, mode)
 
 
   return (
     <div className="flex flex-col items-center min-h-screen px-4 py-8 gap-6">
 
       <ScoreBar
-        onHomeClick={() => navigate('/')}
+        onHomeClick={() => grade ? navigate(`/subject/${grade}`) : navigate('/')}
         modeLabel={modeLabel}
         modeColor={modeColor}
         score={score}

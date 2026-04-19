@@ -1,4 +1,5 @@
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, Navigate } from 'react-router-dom'
+import { getModeConfig } from '../data/registry'
 import Confetti from '../components/Confetti'
 
 const REMARKS = [
@@ -22,15 +23,19 @@ export default function ResultPage() {
   const score = location.state?.score ?? 0
   const total = location.state?.total ?? 100
   const mode = location.state?.mode ?? 'addition'
+  const grade = location.state?.grade
+  const subject = location.state?.subject
+
+  // Route Guard：防止直接輸入 URL 進入結果頁
+  if (!location.state) {
+    return <Navigate to="/" replace />
+  }
 
   const percentage = Math.round((score / total) * 100)
   const remark = getRemark(score)
   const showConfetti = score >= 80
 
-  const modeLabel = mode === 'addition' ? '加法練習' : '減法練習'
-  const modeColor = mode === 'addition'
-    ? 'from-green-400 to-emerald-600'
-    : 'from-rose-400 to-pink-600'
+  const { label: modeLabel, color: modeColor } = getModeConfig(grade, subject, mode)
 
   // Score ring color
   const ringColor =
@@ -82,7 +87,7 @@ export default function ResultPage() {
       <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
         <button
           id="btn-replay"
-          onClick={() => navigate('/game', { state: { mode } })}
+          onClick={() => navigate('/game', { state: { mode, grade, subject } })}
           className={`
             flex-1 py-4 rounded-2xl text-white font-black text-lg
             bg-gradient-to-r ${modeColor}
@@ -93,7 +98,7 @@ export default function ResultPage() {
         </button>
         <button
           id="btn-home-result"
-          onClick={() => navigate('/')}
+          onClick={() => grade ? navigate(`/subject/${grade}`) : navigate('/')}
           className="
             flex-1 py-4 rounded-2xl font-black text-lg
             border-2 border-indigo-300 text-indigo-600
@@ -101,7 +106,7 @@ export default function ResultPage() {
             transform transition-all hover:scale-105 active:scale-95 shadow-md
           "
         >
-          🏠 回首頁
+          {grade ? '⬅️ 回單元' : '🏠 回首頁'}
         </button>
       </div>
     </div>

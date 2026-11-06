@@ -1,13 +1,81 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>kids-game</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="國小英語群島——一～六年級上下學期英文單字與句型小島" />
+  <title>國小英語群島</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%9D%EF%B8%8F%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/site.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要內容</a>
+
+  <div id="sea" aria-hidden="true">
+    <div class="wave w1"></div>
+    <div class="wave w2"></div>
+    <div class="cloud c1"></div>
+    <div class="cloud c2"></div>
+    <div class="cloud c3"></div>
+  </div>
+
+  <header class="topbar">
+    <a class="brand" href="index.html" aria-label="國小英語群島大廳">
+      <span class="brand-mark" aria-hidden="true">🏝️</span>
+      <span class="brand-text"><strong>國小英語群島</strong><small>大廳</small></span>
+    </a>
+  </header>
+
+  <main id="main">
+    <section class="lobby-hero">
+      <p class="eyebrow" id="lobby-hello">歡迎來到英語群島！</p>
+      <h1>國小英語群島</h1>
+      <p class="lead">跟探險小夥伴一起，一座島一座島收集星星 ★</p>
+    </section>
+
+    <div class="cover" id="cover-art"></div>
+
+    <div class="host-row">
+      <button type="button" class="host-btn" id="host" aria-label="點小夥伴換一位主持人"></button>
+      <p class="speech"><span id="host-line">一起去冒險吧！</span><small>點一下小夥伴，牠會跳起來喔！</small></p>
+    </div>
+
+    <div class="subject-grid">
+      <a class="subject-card" href="english/index.html">
+        <span class="subject-icon" aria-hidden="true">🔤</span>
+        <div>
+          <h2>英文</h2>
+          <p>一～六年級・上下學期 12 條航線<br />單字、配對、拼字、句型</p>
+        </div>
+        <span class="go">出發 →</span>
+      </a>
+    </div>
+
+    <a class="continue" id="continue" href="english/index.html" hidden>
+      <span aria-hidden="true">⛵</span><span class="continue-text">繼續上次</span>
+    </a>
+
+    <section class="parent-note" aria-labelledby="parent-note-title">
+      <h2 id="parent-note-title">給家長</h2>
+      <p>兩個孩子可以各選自己的年級和學期；名字依年級保存，星星依學期分開記，都存在這台裝置的瀏覽器裡。</p>
+      <p>角色是我們自己畫的探險小夥伴，靈感來自孩子喜歡的寶可夢冒險，不是官方寶可夢。</p>
+      <p>目前只有英文；之後要加其他科目，可以在 <code>english/</code> 旁邊再開一個資料夾。</p>
+    </section>
+  </main>
+
+  <footer class="site-foot">
+    <p>給國小孩子的英文練習原型 · 單字參考鑄強初級 300 字與課綱基本 1200 字</p>
+    <p>探險小夥伴是本站自己畫的原創角色，不是官方寶可夢。</p>
+    <p data-note></p>
+  </footer>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/core.js"></script>
+  <script src="assets/companions.js"></script>
+  <script src="assets/lobby.js"></script>
+  <script>document.querySelectorAll('[data-note]').forEach(function (n) { n.textContent = (window.ENGLISH_ISLES_DATA || {}).meta ? window.ENGLISH_ISLES_DATA.meta.note : ''; });</script>
+</body>
 </html>

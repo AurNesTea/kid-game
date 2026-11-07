@@ -216,16 +216,73 @@
     return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
   }
 
-  // 「開船囉」轉場後再換頁
-  function sailTo(href, overlay) {
-    if (!overlay || reducedMotion()) { location.href = href; return; }
-    overlay.hidden = false;
-    setTimeout(function () { location.href = href; }, 850);
+  // 「開船囉」轉場後再換頁。
+  // 部分 Android／內建瀏覽器在 preventDefault 後延遲改 location 會失敗，
+  // 全螢幕遮罩就卡住。對策：絕對網址、盡快 assign、可點遮罩重試、逾時掀開。
+  function hideSailOverlay(overlay) {
+    var o = overlay || document.getElementById('sail-overlay');
+    if (!o) return;
+    o.hidden = true;
+    o.onclick = null;
+    o.onkeydown = null;
+    o.removeAttribute('role');
+    o.removeAttribute('tabindex');
+    o.removeAttribute('aria-label');
   }
-  // 從別頁按「上一頁」回來時把轉場收起來
-  window.addEventListener('pageshow', function () {
-    var o = document.getElementById('sail-overlay');
-    if (o) o.hidden = true;
+  function sailTo(href, overlay) {
+    var url = href;
+    if (!url) return;
+    var started = Date.now();
+    function go() {
+      try { location.assign(url); } catch (e1) {
+        try { window.location.href = url; } catch (e2) { /* ignore */ }
+      }
+    }
+    if (!overlay || reducedMotion()) { go(); return; }
+    overlay.hidden = false;
+    overlay.setAttribute('role', 'button');
+    overlay.setAttribute('tabindex', '0');
+    overlay.setAttribute('aria-label', '點一下繼續開船');
+    var navigated = false;
+    function finish() {
+      if (navigated) return;
+      navigated = true;
+      go();
+    }
+    overlay.onclick = function (e) {
+      if (e) e.preventDefault();
+      finish();
+    };
+    overlay.onkeydown = function (e) {
+      if (e && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); finish(); }
+    };
+    // 短延遲讓動畫露一下；不要拖到 850ms（手機上較容易被擋）
+    setTimeout(finish, 280);
+    // 保底：若還停在原頁，再試一次並掀開遮罩
+    setTimeout(function () {
+      if (document.hidden) return;
+      finish();
+      hideSailOverlay(overlay);
+    }, 1200);
+    // 最後手段：用 <a> 程式觸發原生導向
+    setTimeout(function () {
+      if (document.hidden) return;
+      if (Date.now() - started < 2500 && location.href.indexOf(url) === -1) {
+        hideSailOverlay(overlay);
+        var probe = document.createElement('a');
+        probe.href = url;
+        probe.style.display = 'none';
+        document.body.appendChild(probe);
+        try { probe.click(); } catch (e3) { go(); }
+        setTimeout(function () { if (probe.parentNode) probe.parentNode.removeChild(probe); }, 0);
+      }
+    }, 1600);
+  }
+  function clearStuckSail() { hideSailOverlay(); }
+  window.addEventListener('pageshow', clearStuckSail);
+  window.addEventListener('pagehide', clearStuckSail);
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) clearStuckSail();
   });
 
   function normalizeAnswer(s) {
@@ -280,6 +337,7 @@
     reducedMotion: reducedMotion,
     shade: shade,
     sailTo: sailTo,
+    hideSailOverlay: hideSailOverlay,
     normalizeAnswer: normalizeAnswer,
     answersMatch: answersMatch,
     $: function (sel, el) { return (el || document).querySelector(sel); },

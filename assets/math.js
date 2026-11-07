@@ -51,6 +51,13 @@
   function initHub() {
     var grid = $('#grade-grid');
     if (!grid) return;
+    // /math（無尾斜線）時，相對連結 1-1/ 會指到錯路徑；補上尾斜線
+    try {
+      var path = location.pathname || '';
+      if (path && !/\/$/i.test(path) && !/index\.html$/i.test(path)) {
+        history.replaceState(null, '', path + '/' + (location.search || '') + (location.hash || ''));
+      }
+    } catch (e) { /* ignore */ }
     var last = C.lastRoute();
     grid.innerHTML = [1, 2, 3, 4, 5, 6].map(function (g) {
       var track = TRACK(g);
@@ -80,13 +87,8 @@
         '</article>';
     }).join('');
 
-    var overlay = $('#sail-overlay');
-    grid.addEventListener('click', function (e) {
-      var a = e.target.closest('a.sem-btn');
-      if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
-      e.preventDefault();
-      C.sailTo(a.getAttribute('href'), overlay);
-    });
+    // 學期卡是真正的 <a href>：不 preventDefault、不蓋開船遮罩。
+    // 先前用 JS 延遲 location 換頁時，部分 Android 會停在「開船囉」全螢幕遮罩。
   }
 
   // =====================================================================

@@ -55,6 +55,12 @@
     if (legacy) { location.replace(legacy + '/index.html'); return; }
 
     var grid = $('#grade-grid');
+    try {
+      var path = location.pathname || '';
+      if (path && !/\/$/i.test(path) && !/index\.html$/i.test(path)) {
+        history.replaceState(null, '', path + '/' + (location.search || '') + (location.hash || ''));
+      }
+    } catch (e) { /* ignore */ }
     var last = C.lastRoute();
     grid.innerHTML = [1, 2, 3, 4, 5, 6].map(function (g) {
       var track = TRACK(g);
@@ -86,13 +92,7 @@
         '</article>';
     }).join('');
 
-    var overlay = $('#sail-overlay');
-    grid.addEventListener('click', function (e) {
-      var a = e.target.closest('a.sem-btn');
-      if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
-      e.preventDefault();
-      C.sailTo(a.getAttribute('href'), overlay);
-    });
+    // 學期卡是真正的 <a href>：不 preventDefault、不蓋開船遮罩（Android 安全）。
   }
 
   // =====================================================================
@@ -332,7 +332,16 @@
       var sail = $('#sail-overlay');
       if (!sail || C.reducedMotion()) { fn(); return; }
       sail.hidden = false;
-      setTimeout(function () { sail.hidden = true; fn(); }, 900);
+      var done = false;
+      function finish() {
+        if (done) return;
+        done = true;
+        if (C.hideSailOverlay) C.hideSailOverlay(sail); else sail.hidden = true;
+        fn();
+      }
+      sail.onclick = finish;
+      setTimeout(finish, 500);
+      setTimeout(function () { if (!done) finish(); }, 1400);
     }
 
     // ---------- 挑戰 ----------

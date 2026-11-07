@@ -9,6 +9,7 @@
     document.body.innerHTML = '<p style="padding:2rem">資料載入失敗，請確認 assets/ 資料夾裡的 data.js、core.js、companions.js 都在。</p>';
     return;
   }
+  C.setSubject('english');
   var $ = C.$, $$ = C.$$, escapeHtml = C.escapeHtml, escapeAttr = C.escapeAttr, shuffle = C.shuffle;
   var GRADE_LABEL = C.GRADE_LABEL;
 

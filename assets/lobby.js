@@ -53,17 +53,21 @@
     });
   }
 
-  // 上次的航線
+  // 上次的航線（英文或數學）
   var cont = document.getElementById('continue');
-  var last = C.lastRoute();
-  var r = C.parseRoute(last);
-  if (cont && r) {
+  var target = C.continueTarget && C.continueTarget();
+  if (cont && target && target.parsed) {
+    var r = target.parsed;
     var name = C.playerNameFor(r.grade);
+    C.setSubject(target.subject);
     var st = C.starsForRoute(r.grade, r.semester);
+    C.setSubject('english');
+    var subLabel = target.subject === 'math' ? '數學' : '英文';
     cont.hidden = false;
-    cont.href = 'english/' + last + '/index.html';
+    cont.href = target.subject + '/' + target.route + '/index.html';
     cont.querySelector('.continue-text').textContent =
-      '繼續上次：' + (name ? name + '・' : '') + C.routeLabel(r.grade, r.semester) + (st.all ? '（★ ' + st.got + '/' + st.all + '）' : '');
+      '繼續上次：' + (name ? name + '・' : '') + subLabel + '・' + C.routeLabel(r.grade, r.semester) +
+      (st.all ? '（★ ' + st.got + '/' + st.all + '）' : '');
   }
 
   // 名字打招呼
@@ -71,6 +75,6 @@
   if (hello) {
     var names = C.loadPlayers();
     var list = Object.keys(names).sort().map(function (g) { return names[g]; }).filter(Boolean);
-    hello.textContent = list.length ? '歡迎回來，' + list.join('、') + '！' : '歡迎來到英語群島！';
+    hello.textContent = list.length ? '歡迎回來，' + list.join('、') + '！' : '歡迎來到學習群島！';
   }
 })();

@@ -2,16 +2,33 @@
 (function () {
   'use strict';
 
-  var PREFIX = 'english-isles';
-  var KEY_PLAYER = PREFIX + '-player';   // 舊版單一名字
-  var KEY_PLAYERS = PREFIX + '-players'; // { "2": "小明", "4": "小華" }
-  var KEY_GRADE = PREFIX + '-grade';     // 舊版
-  var KEY_ROUTE = PREFIX + '-route';     // "2-1"
+  // 科目前綴：英文維持 english-isles-*（相容舊存檔）；數學用 math-isles-*，互不覆蓋。
+  var SUBJECT = 'english';
+  var SUBJECT_PREFIX = { english: 'english-isles', math: 'math-isles' };
+  var KEY_PLAYERS = 'english-isles-players'; // 名字依年級共用（兩科同一孩子）
+  var KEY_PLAYER = 'english-isles-player';   // 舊版單一名字
+  var KEY_GRADE = 'english-isles-grade';     // 舊版英文年級
+  var KEY_LAST_SUBJECT = 'isles-last-subject';
   var GRADE_LABEL = ['', '一', '二', '三', '四', '五', '六'];
   var ROUTES = ['1-1', '1-2', '2-1', '2-2', '3-1', '3-2', '4-1', '4-2', '5-1', '5-2', '6-1', '6-2'];
 
-  function progressKey(g, s) { return PREFIX + '-g' + g + 's' + s; }
-  function legacyProgressKey(g) { return PREFIX + '-g' + g; }
+  var MATH_MODE_LABELS = {
+    scaffold: '一步一步算',
+    word: '應用題',
+    error: '找出錯哪',
+    visual: '數一數',
+    recap: '小小複習'
+  };
+
+  function prefix() { return SUBJECT_PREFIX[SUBJECT] || SUBJECT_PREFIX.english; }
+  function setSubject(id) {
+    SUBJECT = (id === 'math') ? 'math' : 'english';
+    return SUBJECT;
+  }
+  function getSubject() { return SUBJECT; }
+  function progressKey(g, s) { return prefix() + '-g' + g + 's' + s; }
+  function legacyProgressKey(g) { return 'english-isles-g' + g; }
+  function routeStorageKey() { return prefix() + '-route'; }
   function routeKey(g, s) { return g + '-' + s; }
   function routeLabel(g, s) { return GRADE_LABEL[g] + '年級' + (s === 1 ? '上' : '下') + '學期'; }
   function parseRoute(str) {
@@ -29,15 +46,17 @@
     remove: function (k) { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } }
   };
 
-  function data() { return window.ENGLISH_ISLES_DATA || null; }
+  function englishData() { return window.ENGLISH_ISLES_DATA || null; }
+  function mathData() { return window.MATH_ISLES_DATA || null; }
+  function data() { return SUBJECT === 'math' ? mathData() : englishData(); }
 
   function loadProgress(grade, sem) {
     try {
       var key = progressKey(grade, sem);
       var raw = store.get(key);
-      var D = data();
-      if ((!raw || raw === '{}') && (grade === 2 || grade === 4) && D) {
-        // 舊版 english-isles-g2 / g4 累積進度：新鍵是空的時候搬一次
+      var D = englishData();
+      // 英文舊版遷移；數學不碰 english-isles-g*
+      if (SUBJECT === 'english' && (!raw || raw === '{}') && (grade === 2 || grade === 4) && D) {
         var legacy = store.get(legacyProgressKey(grade));
         if (legacy && legacy !== '{}') {
           try {
@@ -64,7 +83,12 @@
   }
 
   function modesForLessonAtGrade(lesson, grade) {
-    if (lesson.type === 'grammar') return [{ id: 'grammar', label: '句型練習' }];
+    if (lesson && lesson.type === 'math' && lesson.modes) {
+      return lesson.modes.map(function (id) {
+        return { id: id, label: MATH_MODE_LABELS[id] || id };
+      });
+    }
+    if (lesson && lesson.type === 'grammar') return [{ id: 'grammar', label: '句型練習' }];
     var modes = [
       { id: 'en2zh', label: '看英選中' },
       { id: 'zh2en', label: '看中選英' },
@@ -110,10 +134,36 @@
     }
   }
 
-  function lastRoute() { return parseRoute(store.get(KEY_ROUTE)) ? store.get(KEY_ROUTE) : ''; }
+  function lastRoute() {
+    var r = store.get(routeStorageKey());
+    return parseRoute(r) ? r : '';
+  }
   function setLastRoute(g, s) {
-    store.set(KEY_ROUTE, routeKey(g, s));
-    store.set(KEY_GRADE, String(g));
+    store.set(routeStorageKey(), routeKey(g, s));
+    store.set(KEY_LAST_SUBJECT, SUBJECT);
+    if (SUBJECT === 'english') store.set(KEY_GRADE, String(g));
+  }
+  function lastSubject() {
+    var s = store.get(KEY_LAST_SUBJECT);
+    return s === 'math' ? 'math' : 'english';
+  }
+  /** 大廳「繼續上次」：依最後科目取對應航線 */
+  function continueTarget() {
+    var sub = lastSubject();
+    var prev = SUBJECT;
+    setSubject(sub);
+    var route = lastRoute();
+    SUBJECT = prev;
+    if (!route) {
+      // 若該科沒航線，試另一科
+      var other = sub === 'math' ? 'english' : 'math';
+      setSubject(other);
+      route = lastRoute();
+      SUBJECT = prev;
+      if (!route) return null;
+      sub = other;
+    }
+    return { subject: sub, route: route, parsed: parseRoute(route) };
   }
 
   // 舊版網址（#2-1、#g2s1、#g2…）轉成新路徑上的航線
@@ -178,11 +228,32 @@
     if (o) o.hidden = true;
   });
 
+  function normalizeAnswer(s) {
+    return String(s == null ? '' : s).trim().replace(/\s+/g, '').replace(/／/g, '/').replace(/：/g, ':');
+  }
+  function answersMatch(input, answers) {
+    var a = normalizeAnswer(input).toLowerCase();
+    if (!a) return false;
+    var list = answers || [];
+    for (var i = 0; i < list.length; i++) {
+      if (normalizeAnswer(list[i]).toLowerCase() === a) return true;
+    }
+    return false;
+  }
+
   window.IslesCore = {
-    KEYS: { PLAYER: KEY_PLAYER, PLAYERS: KEY_PLAYERS, GRADE: KEY_GRADE, ROUTE: KEY_ROUTE },
+    KEYS: {
+      PLAYER: KEY_PLAYER,
+      PLAYERS: KEY_PLAYERS,
+      GRADE: KEY_GRADE,
+      LAST_SUBJECT: KEY_LAST_SUBJECT
+    },
+    MATH_MODE_LABELS: MATH_MODE_LABELS,
     GRADE_LABEL: GRADE_LABEL,
     ROUTES: ROUTES,
     store: store,
+    setSubject: setSubject,
+    getSubject: getSubject,
     progressKey: progressKey,
     routeKey: routeKey,
     routeLabel: routeLabel,
@@ -197,6 +268,8 @@
     migrateOldName: migrateOldName,
     lastRoute: lastRoute,
     setLastRoute: setLastRoute,
+    lastSubject: lastSubject,
+    continueTarget: continueTarget,
     legacyHashRoute: legacyHashRoute,
     speak: speak,
     stopSpeak: stopSpeak,
@@ -207,6 +280,8 @@
     reducedMotion: reducedMotion,
     shade: shade,
     sailTo: sailTo,
+    normalizeAnswer: normalizeAnswer,
+    answersMatch: answersMatch,
     $: function (sel, el) { return (el || document).querySelector(sel); },
     $$: function (sel, el) { return Array.prototype.slice.call((el || document).querySelectorAll(sel)); }
   };

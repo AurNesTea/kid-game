@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="國小數學群島——一～六年級上下學期數學小島" />
+  <title>六年級下學期｜國小數學群島</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%94%A2%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <link rel="stylesheet" href="../../assets/english.css" />
+  <link rel="stylesheet" href="../../assets/math.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要內容</a>
+
+  <div id="sea" aria-hidden="true">
+    <div class="wave w1"></div>
+    <div class="wave w2"></div>
+    <div class="cloud c1"></div>
+    <div class="cloud c2"></div>
+    <div class="cloud c3"></div>
+  </div>
+
+  <header class="topbar">
+    <a class="brand" href="../../index.html" aria-label="回大廳">
+      <span class="brand-mark" aria-hidden="true">🏝️</span>
+      <span class="brand-text"><strong>國小英語群島</strong><small>數學・選一座島</small></span>
+    </a>
+    <div class="topbar-right">
+      <div class="star-pill" title="這學期已獲得的星星" aria-live="polite">
+        <span id="star-ball" aria-hidden="true"></span>
+        <span aria-hidden="true">★</span>
+        <span id="star-got">0</span><span class="slash">/</span><span id="star-all">0</span>
+      </div>
+      <a class="switcher" href="../index.html" aria-label="換人玩或更換年級學期">
+        <span id="grade-badge">六年級下學期</span>
+        <span class="switcher-hint">換人玩</span>
+      </a>
+      <button type="button" class="icon-btn" id="btn-player" aria-label="玩家設定">👤</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <ol class="crumbs" aria-label="目前位置">
+      <li><a href="../../index.html">大廳</a></li>
+      <li><a href="../index.html">數學</a></li>
+      <li><span aria-current="page" id="crumb-route">六年級下學期</span></li>
+    </ol>
+
+    <section id="view-home" class="view">
+      <div class="route-banner">
+        <div class="banner-text">
+          <p class="eyebrow"><span id="player-hello">你好！</span> <span class="grade-track" id="route-track"></span></p>
+          <h1 id="route-title">六年級下學期・選一座島去玩</h1>
+          <p class="lead" id="route-lead">卡住了可以要提示；應用題會先問你「求什麼」。</p>
+          <p class="name-hint" id="name-hint" hidden>還沒取名字？點右上角 👤 把名字寫上去，星星就不會跟兄弟姊妹搞混。</p>
+        </div>
+        <div class="route-buddies" id="route-buddies"></div>
+      </div>
+      <div class="island-grid" id="island-grid"></div>
+      <section class="unit-list-wrap">
+        <h2 class="section-title">依主題關卡進入</h2>
+        <p class="section-note">順序依建議學習進度排列；各校教科書單元略有差異。</p>
+        <div id="unit-list" class="unit-list"></div>
+      </section>
+    </section>
+
+    <section id="view-island" class="view" hidden>
+      <button type="button" class="back-link" id="btn-back-home">← 回群島</button>
+      <div class="island-hero" id="island-hero"></div>
+      <div class="lesson-map" id="lesson-map"></div>
+    </section>
+  </main>
+
+  <div id="sail-overlay" class="sail-overlay" hidden aria-hidden="true">
+    <div class="sail-boat" aria-hidden="true">⛵</div>
+    <p class="sail-text">開船囉…</p>
+  </div>
+
+  <div id="challenge" class="challenge" hidden role="dialog" aria-modal="true" aria-labelledby="ch-title">
+    <div class="challenge-sheet">
+      <header class="ch-head">
+        <div class="ch-title-wrap">
+          <span id="ch-buddy" aria-hidden="true"></span>
+          <div>
+            <p class="ch-kicker" id="ch-kicker">挑戰</p>
+            <h2 id="ch-title">關卡</h2>
+          </div>
+        </div>
+        <button type="button" class="icon-btn" id="btn-close-ch" aria-label="關閉">✕</button>
+      </header>
+      <div class="mode-tabs" id="mode-tabs"></div>
+      <div class="ch-body" id="ch-body"></div>
+      <footer class="ch-foot" id="ch-foot" hidden></footer>
+    </div>
+  </div>
+
+  <div id="player-modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="player-title">
+    <div class="modal-sheet">
+      <h2 id="player-title">探險家設定</h2>
+      <p class="switch-hint">同一個裝置上，每位孩子選自己的年級＋學期；名字依年級共用（英文／數學同名），星星依科目與學期分開。</p>
+      <label class="field">
+        <span><span id="player-grade">一年級</span>的名字</span>
+        <input type="text" id="player-name" maxlength="12" placeholder="例如：小明" autocomplete="nickname" />
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="btn primary" id="btn-save-player">儲存</button>
+        <a class="btn secondary" href="../index.html">換另一個孩子玩／換學期</a>
+        <button type="button" class="btn secondary" id="btn-close-player">先不改</button>
+        <button type="button" class="btn ghost" id="btn-reset-progress">重置進度</button>
+      </div>
+      <p class="fineprint" data-note></p>
+    </div>
+  </div>
+
+  <footer class="site-foot">
+    <p>給國小孩子的數學練習 · 參考十二年國教國小數學常見進度</p>
+    <p>開發：Kevin Tsai</p>
+    <p>探險小夥伴是本站自己畫的原創角色，不是官方寶可夢。</p>
+    <p data-note></p>
+  </footer>
+
+  <script>window.ISLES_ROUTE = '6-2';</script>
+  <script src="../../assets/math-data.js"></script>
+  <script src="../../assets/core.js"></script>
+  <script src="../../assets/companions.js"></script>
+  <script src="../../assets/math.js"></script>
+</body>
+</html>

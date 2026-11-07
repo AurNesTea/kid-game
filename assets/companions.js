@@ -17,10 +17,13 @@
   var BY_ID = {};
   LIST.forEach(function (c) { BY_ID[c.id] = c; });
 
-  // 島嶼 → 小夥伴
+  // 島嶼 → 小夥伴（英文島 + 數學島共用原創角色）
   var ISLAND = {
     hello: 'chirp', numbers: 'pebble', family: 'ember', food: 'sprout',
-    school: 'drop', weather: 'puff', verbs: 'boing', patterns: 'luna', review: 'swirl'
+    school: 'drop', weather: 'puff', verbs: 'boing', patterns: 'luna', review: 'swirl',
+    // 數學群島
+    count: 'pebble', calc: 'chirp', apply: 'ember', shape: 'sprout',
+    measure: 'drop', frac: 'luna'
   };
 
   function eyes(mood, y, gap, cx) {

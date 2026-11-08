@@ -117,14 +117,52 @@ img, svg { display: block; max-width: 100%; }
 .player-chip-text small {
   font-size: .7rem; color: var(--coral-deep); font-weight: 700;
 }
-.player-roster { margin: 0 0 1rem; }
-.roster-title { margin: 0 0 .35rem; font-size: .85rem; font-weight: 700; color: var(--coral-deep); text-align: center; }
-.roster-list { margin: 0; padding: 0; list-style: none; display: grid; gap: .35rem; }
-.roster-list li {
-  background: var(--foam); border: 2px solid var(--sand); border-radius: 12px;
-  padding: .45rem .7rem; font-size: .92rem;
+.player-switcher-sheet { width: min(420px, 100%); }
+.player-roster { margin: 0 0 .85rem; }
+.roster-empty { margin: 0; text-align: center; color: var(--ink-soft); font-size: .9rem; line-height: 1.45; padding: .4rem .2rem 0.6rem; }
+.profile-grid { display: grid; gap: .65rem; }
+.profile-card {
+  display: flex; align-items: center; gap: .75rem;
+  min-height: 64px; width: 100%; text-align: left;
+  padding: .7rem .85rem;
+  background: #fff; border: 2.5px solid var(--sand); border-radius: 18px;
+  box-shadow: var(--shadow); color: var(--ink);
 }
-.roster-empty { margin: 0; text-align: center; color: var(--ink-soft); font-size: .88rem; line-height: 1.4; }
+.profile-card:hover, .profile-card:focus-visible {
+  outline: none; border-color: var(--coral); transform: translateY(-1px);
+}
+.profile-card.is-current {
+  border-color: var(--coral); background: linear-gradient(180deg, #fff7f3, #ffe8df);
+}
+.profile-avatar {
+  flex: 0 0 auto; width: 2.6rem; height: 2.6rem; border-radius: 16px;
+  display: grid; place-items: center; font-size: 1.25rem;
+  background: linear-gradient(180deg, #e8f6fc, #c9e8f5);
+}
+.profile-meta { display: flex; flex-direction: column; gap: .1rem; min-width: 0; flex: 1; }
+.profile-meta strong { font-size: 1.15rem; font-weight: 700; }
+.profile-meta small { color: var(--ink-soft); font-weight: 600; font-size: .85rem; }
+.profile-badge {
+  flex: 0 0 auto; font-size: .72rem; font-weight: 800; color: #fff;
+  background: var(--coral); border: 2px solid var(--coral-deep);
+  border-radius: 999px; padding: .28rem .55rem; white-space: nowrap;
+}
+.profile-badge.ghost {
+  background: transparent; color: var(--coral-deep); border-color: var(--sand);
+}
+.player-secondary {
+  display: flex; flex-wrap: wrap; gap: .45rem; justify-content: center;
+  margin: 0 0 .75rem;
+}
+.player-secondary .btn { min-height: 42px; padding: .45rem .9rem; font-size: .9rem; }
+.player-secondary .btn.ghost { min-height: auto; }
+.player-editor {
+  margin: 0 0 1rem; padding: .85rem .8rem;
+  background: var(--foam); border: 2px dashed var(--sand); border-radius: 18px;
+}
+.player-editor[hidden] { display: none !important; }
+.editor-title { margin: 0 0 .65rem; text-align: center; font-weight: 800; color: var(--coral-deep); }
+.editor-actions { margin-top: .25rem; }
 .field select {
   min-height: var(--tap); border-radius: 14px; border: 2.5px solid var(--sand);
   padding: .5rem .85rem; background: #fff; font: inherit; font-weight: 600;

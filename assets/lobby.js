@@ -53,10 +53,15 @@
     });
   }
 
-  // 上次的航線（英文或數學）
+  // 上次的航線（英文或數學）— 換人後也要跟著改
   var cont = document.getElementById('continue');
-  var target = C.continueTarget && C.continueTarget();
-  if (cont && target && target.parsed) {
+  function refreshContinue() {
+    if (!cont || !C.continueTarget) return;
+    var target = C.continueTarget();
+    if (!(target && target.parsed)) {
+      cont.hidden = true;
+      return;
+    }
     var r = target.parsed;
     var name = C.playerNameFor(r.grade);
     C.setSubject(target.subject);
@@ -69,6 +74,7 @@
       '繼續上次：' + (name ? name + '・' : '') + subLabel + '・' + C.routeLabel(r.grade, r.semester) +
       (st.all ? '（★ ' + st.got + '/' + st.all + '）' : '');
   }
+  refreshContinue();
 
   // 名字打招呼
   var hello = document.getElementById('lobby-hello');
@@ -78,14 +84,12 @@
     hello.textContent = list.length ? '歡迎回來，' + list.join('、') + '！' : '歡迎來到學習群島！';
   }
 
-  // 右上角永遠可見的探險家控制（大廳）
+  // 右上角永遠可見的探險家控制（大廳）：點卡片即可換人
   if (UI && UI.mountPlayerChrome) {
     UI.mountPlayerChrome({
       note: '英文／數學上下學期皆為建議進度切分，非教育部官方學期表。',
-      hubLinks: {
-        english: 'english/index.html',
-        math: 'math/index.html'
-      }
+      onSwitch: function () { refreshContinue(); },
+      onSave: function () { refreshContinue(); }
     });
   }
 })();

@@ -113,24 +113,23 @@
     return '';
   }
 
-  /** 目前顯示的探險家：優先固定年級，否則上次航線年級，再否則第一個有名字的年級 */
+  /** 目前顯示的探險家：航線固定年級 → 主動焦點 → 繼續航線 → 第一位有名字 */
   function resolvePlayerFocus(fixedGrade) {
     if (!C) return { grade: 0, name: '' };
     var g = Number(fixedGrade || 0);
     if (g >= 1 && g <= 6) {
       return { grade: g, name: C.playerNameFor(g) };
     }
+    var active = C.getActiveGrade ? C.getActiveGrade() : 0;
+    if (active) return { grade: active, name: C.playerNameFor(active) };
     var target = C.continueTarget && C.continueTarget();
     if (target && target.parsed) {
       g = target.parsed.grade;
-      return { grade: g, name: C.playerNameFor(g) };
+      var n = C.playerNameFor(g);
+      if (n) return { grade: g, name: n };
     }
-    var players = C.loadPlayers();
-    for (g = 1; g <= 6; g++) {
-      if ((players[String(g)] || '').trim()) {
-        return { grade: g, name: players[String(g)].trim() };
-      }
-    }
+    var explorers = C.listExplorers ? C.listExplorers() : [];
+    if (explorers.length) return explorers[0];
     return { grade: 0, name: '' };
   }
 
@@ -146,81 +145,64 @@
     return right;
   }
 
-  function ensurePlayerModal(opts) {
-    var existing = document.getElementById('player-modal');
-    if (existing) return existing;
-    var prefix = assetPrefix();
-    var englishHref = prefix + 'english/index.html';
-    var mathHref = prefix + 'math/index.html';
-    var wrap = document.createElement('div');
-    wrap.id = 'player-modal';
-    wrap.className = 'modal';
-    wrap.hidden = true;
-    wrap.setAttribute('role', 'dialog');
-    wrap.setAttribute('aria-modal', 'true');
-    wrap.setAttribute('aria-labelledby', 'player-title');
-    wrap.innerHTML =
-      '<div class="modal-sheet">' +
-        '<h2 id="player-title">探險家設定</h2>' +
-        '<p class="switch-hint">兩個孩子可各選年級＋學期；名字依年級共用（英文／數學同名），星星依科目與學期分開。</p>' +
+  function switcherModalHtml(opts) {
+    var note = (opts && opts.note) || '';
+    return (
+      '<div class="modal-sheet player-switcher-sheet">' +
+        '<h2 id="player-title">誰要來玩？</h2>' +
+        '<p class="switch-hint">點大卡片就能換人。名字跟年級綁在一起，星星還是各科分開記。</p>' +
         '<div class="player-roster" id="player-roster" aria-live="polite"></div>' +
-        '<label class="field" id="player-grade-field">' +
-          '<span>為哪一年級取名／換人？</span>' +
-          '<select id="player-grade-select" aria-label="選擇年級"></select>' +
-        '</label>' +
-        '<label class="field">' +
-          '<span><span id="player-grade">一年級</span>的名字</span>' +
-          '<input type="text" id="player-name" maxlength="12" placeholder="例如：小明" autocomplete="nickname" />' +
-        '</label>' +
+        '<div class="player-secondary">' +
+          '<button type="button" class="btn secondary" id="btn-add-explorer">＋ 新增探險家</button>' +
+          '<button type="button" class="btn ghost" id="btn-edit-explorer">改名字</button>' +
+        '</div>' +
+        '<div class="player-editor" id="player-editor" hidden>' +
+          '<p class="editor-title" id="player-editor-title">新增探險家</p>' +
+          '<label class="field" id="player-grade-field">' +
+            '<span>年級</span>' +
+            '<select id="player-grade-select" aria-label="選擇年級"></select>' +
+          '</label>' +
+          '<label class="field">' +
+            '<span><span id="player-grade">一年級</span>的名字</span>' +
+            '<input type="text" id="player-name" maxlength="12" placeholder="例如：小明" autocomplete="nickname" />' +
+          '</label>' +
+          '<div class="btn-row editor-actions">' +
+            '<button type="button" class="btn primary" id="btn-save-player">儲存</button>' +
+            '<button type="button" class="btn secondary" id="btn-cancel-editor">取消</button>' +
+          '</div>' +
+        '</div>' +
         '<div class="modal-actions">' +
-          '<button type="button" class="btn primary" id="btn-save-player">儲存</button>' +
-          '<a class="btn secondary" id="player-link-english" href="' + englishHref + '">去英文選航線</a>' +
-          '<a class="btn secondary" id="player-link-math" href="' + mathHref + '">去數學選航線</a>' +
-          '<button type="button" class="btn secondary" id="btn-close-player">先不改</button>' +
+          '<button type="button" class="btn secondary" id="btn-close-player">關閉</button>' +
           '<button type="button" class="btn ghost" id="btn-reset-progress" hidden>重置進度</button>' +
         '</div>' +
-        '<p class="fineprint" data-note></p>' +
-      '</div>';
-    document.body.appendChild(wrap);
-    if (opts && opts.note) {
-      var note = wrap.querySelector('[data-note]');
-      if (note) note.textContent = opts.note;
-    }
-    return wrap;
+        '<p class="fineprint" data-note>' + C.escapeHtml(note) + '</p>' +
+      '</div>'
+    );
   }
 
-  function fillGradeSelect(select, selected) {
-    if (!select || !C) return;
-    var GRADE_LABEL = C.GRADE_LABEL;
-    select.innerHTML = [1, 2, 3, 4, 5, 6].map(function (g) {
-      var name = C.playerNameFor(g);
-      var label = GRADE_LABEL[g] + '年級' + (name ? '・' + name : '・還沒取名');
-      return '<option value="' + g + '"' + (g === selected ? ' selected' : '') + '>' + C.escapeHtml(label) + '</option>';
-    }).join('');
-  }
-
-  function renderRoster(el) {
-    if (!el || !C) return;
-    var players = C.loadPlayers();
-    var rows = [];
-    for (var g = 1; g <= 6; g++) {
-      var name = (players[String(g)] || '').trim();
-      if (name) rows.push('<li><strong>' + C.escapeHtml(C.GRADE_LABEL[g] + '年級') + '</strong> ' + C.escapeHtml(name) + '</li>');
+  function ensurePlayerModal(opts) {
+    var modal = document.getElementById('player-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'player-modal';
+      document.body.appendChild(modal);
     }
-    if (!rows.length) {
-      el.innerHTML = '<p class="roster-empty">還沒有探險家名字。先選年級、寫上名字，星星就不會跟兄弟姊妹搞混。</p>';
-      return;
-    }
-    el.innerHTML = '<p class="roster-title">這台裝置上的探險家</p><ul class="roster-list">' + rows.join('') + '</ul>';
+    modal.className = 'modal';
+    modal.hidden = true;
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'player-title');
+    modal.innerHTML = switcherModalHtml(opts || {});
+    return modal;
   }
 
   /**
-   * 右上角永遠可見的「誰在玩」控制；點開既有探險家設定 modal。
-   * opts.grade — 航線頁固定年級；省略則可選年級（大廳／科目 hub）
-   * opts.onSave(grade, name) — 儲存後回呼
-   * opts.reset — { confirm(label), buttonLabel(label), onReset() } 僅航線頁
-   * opts.hubLinks — { english, math } 覆蓋預設相對連結
-   * opts.note — footer note
+   * 右上角永遠可見的「誰在玩」；點開以大卡片換人（設定為次要）。
+   * opts.grade — 航線頁固定年級；省略＝大廳／hub 可自由換人
+   * opts.onSave(grade, name) — 新增／改名後
+   * opts.onSwitch(grade, name) — 點卡片換人之後（大廳／hub）
+   * opts.reset — 航線頁重置本學期
+   * opts.note — 小字說明
    */
   function mountPlayerChrome(opts) {
     opts = opts || {};
@@ -230,27 +212,29 @@
     var right = ensureTopbarRight();
     if (!right) return null;
 
-    var modal = document.getElementById('player-modal') || ensurePlayerModal(opts);
+    var modal = ensurePlayerModal(opts);
     var fixedGrade = opts.grade ? Number(opts.grade) : 0;
     var flexible = !(fixedGrade >= 1 && fixedGrade <= 6);
+    var GRADE_LABEL = C.GRADE_LABEL;
+    var editorMode = 'add'; // add | edit
 
-    // 航線頁舊的小 👤 改由 chip 取代，避免兩個入口
     var legacyBtn = document.getElementById('btn-player');
-    if (legacyBtn && legacyBtn.id === 'btn-player') {
+    if (legacyBtn) {
       legacyBtn.hidden = true;
       legacyBtn.setAttribute('aria-hidden', 'true');
       legacyBtn.tabIndex = -1;
     }
 
-    // 航線「換人玩」改標成換學期，避免跟玩家 chip 搶焦點
     var switcherHint = document.querySelector('.switcher-hint');
     if (switcherHint && /換人/.test(switcherHint.textContent || '')) {
       switcherHint.textContent = '換學期';
     }
     var switcher = document.querySelector('a.switcher');
-    if (switcher) {
-      switcher.setAttribute('aria-label', '更換年級或學期');
-    }
+    if (switcher) switcher.setAttribute('aria-label', '更換年級或學期');
+
+    // 航線舊 modal 裡「換另一個孩子」連結改標，避免跟卡片換人打架
+    var oldSwap = modal.querySelector('a.btn.secondary[href$="index.html"]');
+    // 已重建 sheet，不會有
 
     var chip = document.getElementById('btn-site-player');
     if (!chip) {
@@ -269,112 +253,236 @@
 
     var nameEl = document.getElementById('site-player-name');
     var hintEl = document.getElementById('site-player-hint');
+    var roster = document.getElementById('player-roster');
+    var editor = document.getElementById('player-editor');
+    var editorTitle = document.getElementById('player-editor-title');
     var gradeSelect = document.getElementById('player-grade-select');
     var gradeField = document.getElementById('player-grade-field');
-    var gradeLabel = document.getElementById('player-grade') || document.getElementById('player-title-grade');
+    var gradeLabel = document.getElementById('player-grade');
     var nameInput = document.getElementById('player-name');
-    var roster = document.getElementById('player-roster');
     var resetBtn = document.getElementById('btn-reset-progress');
-    var GRADE_LABEL = C.GRADE_LABEL;
-
-    if (flexible) {
-      if (gradeField) gradeField.hidden = false;
-      if (resetBtn) resetBtn.hidden = true;
-      var prefix = assetPrefix();
-      var enLink = document.getElementById('player-link-english');
-      var maLink = document.getElementById('player-link-math');
-      if (opts.hubLinks) {
-        if (enLink && opts.hubLinks.english) enLink.href = opts.hubLinks.english;
-        if (maLink && opts.hubLinks.math) maLink.href = opts.hubLinks.math;
-      } else {
-        if (enLink) enLink.href = prefix + 'english/index.html';
-        if (maLink) maLink.href = prefix + 'math/index.html';
-      }
-    } else {
-      if (gradeField) gradeField.hidden = true;
-      if (resetBtn) {
-        resetBtn.hidden = !opts.reset;
-        if (opts.reset && opts.reset.buttonLabel) {
-          resetBtn.textContent = opts.reset.buttonLabel();
-        }
-      }
-    }
-    function selectedGrade() {
-      if (!flexible) return fixedGrade;
-      if (gradeSelect) return Number(gradeSelect.value) || 0;
-      return resolvePlayerFocus(0).grade || 1;
-    }
 
     function refreshChip(preferGrade) {
       var focus;
       var pref = Number(preferGrade || 0);
-      if (pref >= 1 && pref <= 6) {
+      if (pref >= 1 && pref <= 6 && C.playerNameFor(pref)) {
         focus = { grade: pref, name: C.playerNameFor(pref) };
-        if (!focus.name) focus = resolvePlayerFocus(flexible ? 0 : fixedGrade);
       } else {
         focus = resolvePlayerFocus(flexible ? 0 : fixedGrade);
       }
-      if (nameEl) {
-        nameEl.textContent = focus.name || '誰在玩？';
-      }
-      if (hintEl) {
-        hintEl.textContent = focus.name ? '點我換人' : '點我設定';
-      }
+      if (nameEl) nameEl.textContent = focus.name || '誰在玩？';
+      if (hintEl) hintEl.textContent = focus.name ? '點我換人' : '點我設定';
       chip.setAttribute('aria-label',
         focus.name
-          ? ('目前探險家：' + focus.name + '，點開換人或改名字')
-          : '設定探險家名字或換人玩');
+          ? ('目前是 ' + focus.name + '，點開換人')
+          : '設定探險家或換人玩');
     }
 
-    function syncGradeLabel() {
-      var g = selectedGrade();
+    function updateLobbyHello() {
+      var hello = document.getElementById('lobby-hello');
+      if (!hello) return;
+      var list = (C.listExplorers() || []).map(function (e) { return e.name; });
+      hello.textContent = list.length ? '歡迎回來，' + list.join('、') + '！' : '歡迎來到學習群島！';
+    }
+
+    function hideEditor() {
+      if (editor) editor.hidden = true;
+      editorMode = 'add';
+    }
+
+    function fillGradeSelectForAdd() {
+      if (!gradeSelect) return;
+      var used = {};
+      (C.listExplorers() || []).forEach(function (e) { used[e.grade] = true; });
+      var options = [];
+      for (var g = 1; g <= 6; g++) {
+        if (used[g]) continue;
+        options.push('<option value="' + g + '">' + GRADE_LABEL[g] + '年級</option>');
+      }
+      gradeSelect.innerHTML = options.length
+        ? options.join('')
+        : '<option value="">年級都有人了</option>';
+      gradeSelect.disabled = !options.length;
+      if (gradeField) gradeField.hidden = false;
+      syncEditorGradeLabel();
+    }
+
+    function fillGradeSelectForEdit(selected) {
+      if (!gradeSelect) return;
+      var explorers = C.listExplorers() || [];
+      gradeSelect.innerHTML = explorers.map(function (e) {
+        return '<option value="' + e.grade + '"' + (e.grade === selected ? ' selected' : '') + '>' +
+          C.escapeHtml(GRADE_LABEL[e.grade] + '年級・' + e.name) + '</option>';
+      }).join('');
+      gradeSelect.disabled = !explorers.length;
+      if (gradeField) gradeField.hidden = false;
+      syncEditorGradeLabel();
+      if (nameInput) nameInput.value = C.playerNameFor(selected) || '';
+    }
+
+    function syncEditorGradeLabel() {
+      var g = Number(gradeSelect && gradeSelect.value) || 0;
       if (gradeLabel && g) gradeLabel.textContent = GRADE_LABEL[g] + '年級';
-      if (nameInput && g) nameInput.value = C.playerNameFor(g) || '';
+      else if (gradeLabel) gradeLabel.textContent = '探險家';
+    }
+
+    function showEditor(mode) {
+      editorMode = mode;
+      if (!editor) return;
+      if (editorTitle) editorTitle.textContent = mode === 'edit' ? '改名字' : '新增探險家';
+      if (!flexible && mode === 'edit') {
+        // 航線頁改名只改這一頁的年級，避免動到另一個孩子
+        if (gradeSelect) {
+          gradeSelect.innerHTML = '<option value="' + fixedGrade + '">' + GRADE_LABEL[fixedGrade] + '年級</option>';
+          gradeSelect.disabled = false;
+        }
+        if (gradeField) gradeField.hidden = true;
+        if (gradeLabel) gradeLabel.textContent = GRADE_LABEL[fixedGrade] + '年級';
+        if (nameInput) nameInput.value = C.playerNameFor(fixedGrade) || '';
+      } else if (mode === 'edit') {
+        var focus = resolvePlayerFocus(flexible ? 0 : fixedGrade);
+        fillGradeSelectForEdit(focus.grade || ((C.listExplorers()[0] || {}).grade));
+      } else {
+        fillGradeSelectForAdd();
+        if (nameInput) nameInput.value = '';
+      }
+      editor.hidden = false;
+      if (nameInput && !(gradeSelect && gradeSelect.disabled)) nameInput.focus();
+    }
+
+    function renderRoster() {
+      if (!roster) return;
+      var explorers = C.listExplorers() || [];
+      var focus = resolvePlayerFocus(flexible ? 0 : fixedGrade);
+      if (!explorers.length) {
+        roster.innerHTML = '<p class="roster-empty">還沒有探險家。先按下面「新增探險家」，兩個孩子就不會搶同一個名字。</p>';
+        return;
+      }
+      roster.innerHTML =
+        '<div class="profile-grid" role="list">' +
+        explorers.map(function (e) {
+          var current = focus.grade === e.grade;
+          return '<button type="button" class="profile-card' + (current ? ' is-current' : '') + '" role="listitem" data-grade="' + e.grade + '">' +
+            '<span class="profile-avatar" aria-hidden="true">👤</span>' +
+            '<span class="profile-meta">' +
+              '<strong>' + C.escapeHtml(e.name) + '</strong>' +
+              '<small>' + GRADE_LABEL[e.grade] + '年級</small>' +
+            '</span>' +
+            (current ? '<span class="profile-badge">正在玩</span>' : '<span class="profile-badge ghost">點一下換人</span>') +
+          '</button>';
+        }).join('') +
+        '</div>';
+    }
+
+    function switchToExplorer(grade) {
+      var g = Number(grade);
+      var name = C.playerNameFor(g);
+      if (!(g >= 1 && g <= 6) || !name) return;
+
+      // 航線頁：同年級只關閉；不同年級 → 去科目 hub 選學期（不覆蓋別人名字）
+      if (!flexible) {
+        if (g === fixedGrade) {
+          C.setActiveGrade(g);
+          refreshChip(g);
+          closeModal();
+          return;
+        }
+        C.setActiveGrade(g);
+        closeModal();
+        location.assign('../index.html');
+        return;
+      }
+
+      C.setActiveGrade(g);
+      refreshChip(g);
+      updateLobbyHello();
+      closeModal();
+      if (typeof opts.onSwitch === 'function') opts.onSwitch(g, name);
+      else if (typeof opts.onSave === 'function') opts.onSave(g, name);
     }
 
     function openModal() {
-      var focus = resolvePlayerFocus(flexible ? 0 : fixedGrade);
-      var g = flexible ? (focus.grade || 1) : fixedGrade;
-      if (roster) renderRoster(roster);
-      if (flexible && gradeSelect) fillGradeSelect(gradeSelect, g);
-      syncGradeLabel();
-      if (nameInput) nameInput.value = C.playerNameFor(g) || '';
-      if (gradeLabel) gradeLabel.textContent = GRADE_LABEL[g] + '年級';
-      if (resetBtn && opts.reset && opts.reset.buttonLabel) {
-        resetBtn.textContent = opts.reset.buttonLabel();
-        resetBtn.hidden = false;
+      hideEditor();
+      renderRoster();
+      if (resetBtn) {
+        if (!flexible && opts.reset) {
+          resetBtn.hidden = false;
+          if (opts.reset.buttonLabel) resetBtn.textContent = opts.reset.buttonLabel();
+        } else {
+          resetBtn.hidden = true;
+        }
       }
+      // 沒有探險家時直接展開新增（必要設定）；有人時不搶焦點
+      var explorers = C.listExplorers() || [];
       modal.hidden = false;
-      if (nameInput) nameInput.focus();
+      if (!explorers.length) showEditor('add');
+      else {
+        var firstCard = roster && roster.querySelector('.profile-card');
+        if (firstCard) firstCard.focus();
+      }
     }
 
-    function closeModal() { modal.hidden = true; }
+    function closeModal() {
+      hideEditor();
+      modal.hidden = true;
+    }
 
-    function save() {
-      var g = selectedGrade();
+    function saveEditor() {
+      var g = Number(gradeSelect && gradeSelect.value) || (!flexible ? fixedGrade : 0);
       if (!(g >= 1 && g <= 6)) return;
       var name = ((nameInput && nameInput.value) || '').trim().slice(0, 12);
-      C.savePlayerName(g, name);
-      refreshChip(g);
-      closeModal();
-      if (typeof opts.onSave === 'function') opts.onSave(g, name);
-      // 大廳打招呼若存在就更新
-      var hello = document.getElementById('lobby-hello');
-      if (hello) {
-        var names = C.loadPlayers();
-        var list = Object.keys(names).sort().map(function (k) { return names[k]; }).filter(Boolean);
-        hello.textContent = list.length ? '歡迎回來，' + list.join('、') + '！' : '歡迎來到學習群島！';
+      if (!name) {
+        if (nameInput) nameInput.focus();
+        return;
       }
+      // 新增時若該年級已有人，不覆蓋（改名字流程才改）
+      if (editorMode === 'add' && C.playerNameFor(g)) {
+        alert('這個年級已經有探險家了，請改選別的年級，或用「改名字」。');
+        return;
+      }
+      C.savePlayerName(g, name);
+      C.setActiveGrade(g);
+      updateLobbyHello();
+      // 航線頁新增了「別的年級」的孩子 → 去 hub 換學期，不改寫本頁年級存檔以外的進度鍵
+      if (!flexible && g !== fixedGrade) {
+        closeModal();
+        location.assign('../index.html');
+        return;
+      }
+      refreshChip(g);
+      hideEditor();
+      renderRoster();
+      if (typeof opts.onSave === 'function') opts.onSave(g, name);
     }
 
     chip.onclick = openModal;
+    if (legacyBtn) legacyBtn.onclick = openModal;
+
+    if (roster) {
+      roster.onclick = function (e) {
+        var card = e.target.closest('.profile-card[data-grade]');
+        if (!card) return;
+        switchToExplorer(card.getAttribute('data-grade'));
+      };
+    }
+
+    var btnAdd = document.getElementById('btn-add-explorer');
+    var btnEdit = document.getElementById('btn-edit-explorer');
+    var btnCancel = document.getElementById('btn-cancel-editor');
     var btnClose = document.getElementById('btn-close-player');
     var btnSave = document.getElementById('btn-save-player');
+    if (btnAdd) btnAdd.onclick = function () { showEditor('add'); };
+    if (btnEdit) btnEdit.onclick = function () {
+      if (!(C.listExplorers() || []).length) showEditor('add');
+      else showEditor('edit');
+    };
+    if (btnCancel) btnCancel.onclick = hideEditor;
     if (btnClose) btnClose.onclick = closeModal;
-    if (btnSave) btnSave.onclick = save;
-    if (gradeSelect) {
-      gradeSelect.onchange = function () { syncGradeLabel(); };
-    }
+    if (btnSave) btnSave.onclick = saveEditor;
+    if (gradeSelect) gradeSelect.onchange = function () {
+      syncEditorGradeLabel();
+      if (editorMode === 'edit' && nameInput) nameInput.value = C.playerNameFor(Number(gradeSelect.value)) || '';
+    };
     if (resetBtn && opts.reset && typeof opts.reset.onReset === 'function') {
       resetBtn.onclick = function () {
         var msg = opts.reset.confirm ? opts.reset.confirm() : '確定要重置進度嗎？';
@@ -383,14 +491,14 @@
         closeModal();
       };
     }
-    if (legacyBtn) {
-      legacyBtn.onclick = openModal;
-    }
 
     if (!modal._islesEscapeBound) {
       modal._islesEscapeBound = true;
       document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && modal && !modal.hidden) closeModal();
+        if (e.key === 'Escape' && modal && !modal.hidden) {
+          if (editor && !editor.hidden) hideEditor();
+          else closeModal();
+        }
       });
     }
 

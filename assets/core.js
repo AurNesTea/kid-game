@@ -9,6 +9,8 @@
   var KEY_PLAYER = 'english-isles-player';   // 舊版單一名字
   var KEY_GRADE = 'english-isles-grade';     // 舊版英文年級
   var KEY_LAST_SUBJECT = 'isles-last-subject';
+  // 目前「誰在玩」的年級焦點（不是進度鍵；不取代 english-isles-* / math-isles-* 星星）
+  var KEY_ACTIVE_GRADE = 'isles-active-grade';
   var GRADE_LABEL = ['', '一', '二', '三', '四', '五', '六'];
   var ROUTES = ['1-1', '1-2', '2-1', '2-2', '3-1', '3-2', '4-1', '4-2', '5-1', '5-2', '6-1', '6-2'];
 
@@ -124,6 +126,40 @@
     store.set(KEY_PLAYERS, JSON.stringify(players));
     if (name) store.set(KEY_PLAYER, name); else store.remove(KEY_PLAYER);
   }
+  function listExplorers() {
+    var players = loadPlayers();
+    var out = [];
+    for (var g = 1; g <= 6; g++) {
+      var name = (players[String(g)] || '').trim();
+      if (name) out.push({ grade: g, name: name });
+    }
+    return out;
+  }
+  function getActiveGrade() {
+    var g = Number(store.get(KEY_ACTIVE_GRADE) || 0);
+    if (g >= 1 && g <= 6 && playerNameFor(g)) return g;
+    return 0;
+  }
+  /** 把「誰在玩」對準某年級；兩科的「繼續上次」航線都對齊到同年級（保留各自上／下學期） */
+  function setActiveGrade(grade) {
+    var g = Number(grade);
+    if (!(g >= 1 && g <= 6)) return 0;
+    store.set(KEY_ACTIVE_GRADE, String(g));
+    store.set(KEY_GRADE, String(g));
+    var prevSubject = SUBJECT;
+    var prevLastSubject = store.get(KEY_LAST_SUBJECT);
+    ['english', 'math'].forEach(function (sub) {
+      setSubject(sub);
+      var parsed = parseRoute(lastRoute());
+      var sem = parsed ? parsed.semester : 1;
+      setLastRoute(g, sem);
+    });
+    SUBJECT = prevSubject;
+    if (prevLastSubject === 'math' || prevLastSubject === 'english') {
+      store.set(KEY_LAST_SUBJECT, prevLastSubject);
+    }
+    return g;
+  }
   // 舊版只有一個名字時，搬到當時的年級
   function migrateOldName() {
     var oldName = (store.get(KEY_PLAYER) || '').trim();
@@ -131,6 +167,11 @@
     if (oldName && !Object.keys(loadPlayers()).length && g >= 1 && g <= 6) {
       var players = {}; players[String(g)] = oldName;
       store.set(KEY_PLAYERS, JSON.stringify(players));
+    }
+    if (!getActiveGrade()) {
+      var fromRoute = parseRoute(lastRoute());
+      if (fromRoute && playerNameFor(fromRoute.grade)) store.set(KEY_ACTIVE_GRADE, String(fromRoute.grade));
+      else if (g >= 1 && g <= 6 && playerNameFor(g)) store.set(KEY_ACTIVE_GRADE, String(g));
     }
   }
 
@@ -303,8 +344,10 @@
       PLAYER: KEY_PLAYER,
       PLAYERS: KEY_PLAYERS,
       GRADE: KEY_GRADE,
-      LAST_SUBJECT: KEY_LAST_SUBJECT
+      LAST_SUBJECT: KEY_LAST_SUBJECT,
+      ACTIVE_GRADE: KEY_ACTIVE_GRADE
     },
+
     MATH_MODE_LABELS: MATH_MODE_LABELS,
     GRADE_LABEL: GRADE_LABEL,
     ROUTES: ROUTES,
@@ -322,6 +365,9 @@
     loadPlayers: loadPlayers,
     playerNameFor: playerNameFor,
     savePlayerName: savePlayerName,
+    listExplorers: listExplorers,
+    getActiveGrade: getActiveGrade,
+    setActiveGrade: setActiveGrade,
     migrateOldName: migrateOldName,
     lastRoute: lastRoute,
     setLastRoute: setLastRoute,

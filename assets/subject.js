@@ -71,6 +71,7 @@
       if (UI.mountPlayerChrome) {
         UI.mountPlayerChrome({
           note: DATA.meta && DATA.meta.note,
+          onSwitch: function () { renderHubGrid(); },
           onSave: function () { renderHubGrid(); }
         });
       }

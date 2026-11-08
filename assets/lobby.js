@@ -1,7 +1,7 @@
 /* 國小學習群島 — 大廳（index.html） */
 (function () {
   'use strict';
-  var C = window.IslesCore, P = window.Companions;
+  var C = window.IslesCore, P = window.Companions, UI = window.IslesUI;
   if (!C || !P) return;
 
   // 舊版書籤（index.html#2-1、#grade、#island/…）導到新路徑
@@ -76,5 +76,16 @@
     var names = C.loadPlayers();
     var list = Object.keys(names).sort().map(function (g) { return names[g]; }).filter(Boolean);
     hello.textContent = list.length ? '歡迎回來，' + list.join('、') + '！' : '歡迎來到學習群島！';
+  }
+
+  // 右上角永遠可見的探險家控制（大廳）
+  if (UI && UI.mountPlayerChrome) {
+    UI.mountPlayerChrome({
+      note: '英文／數學上下學期皆為建議進度切分，非教育部官方學期表。',
+      hubLinks: {
+        english: 'english/index.html',
+        math: 'math/index.html'
+      }
+    });
   }
 })();

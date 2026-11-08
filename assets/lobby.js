@@ -1,4 +1,4 @@
-/* 國小英語群島 — 大廳（index.html） */
+/* 國小學習群島 — 大廳（index.html） */
 (function () {
   'use strict';
   var C = window.IslesCore, P = window.Companions;

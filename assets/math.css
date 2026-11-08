@@ -120,9 +120,18 @@
 }
 .challenge[hidden] { display: none !important; }
 .challenge-sheet {
-  width: min(560px, 100%); max-height: min(92dvh, 820px); overflow: auto;
+  width: min(560px, 100%);
+  max-height: 92vh; /* 舊 Android 可能不支援 dvh */
+  max-height: min(92dvh, 820px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
   background: var(--paper); border: 3px solid var(--sand); border-radius: 24px 24px 18px 18px;
   box-shadow: var(--shadow); padding: 0 0 .5rem;
+}
+.answer-row input[type="text"],
+.answer-row .btn,
+.hint-actions .btn {
+  touch-action: manipulation; /* 減少手機雙擊縮放延遲 */
 }
 .ch-head {
   display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem;

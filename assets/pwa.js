@@ -1,4 +1,4 @@
-/* 國小英語群島 — 註冊 Service Worker（自動推算 /kid-game/ 基底） */
+/* 國小學習群島 — 註冊 Service Worker（自動推算 /kid-game/ 基底） */
 (function () {
   'use strict';
 

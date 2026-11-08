@@ -1,4 +1,4 @@
-/* 國小英語群島 — 英文科：資料與遊戲模式；hub／航線殼層見 subject.js */
+/* 國小學習群島 — 英文科：資料與遊戲模式；hub／航線殼層見 subject.js */
 (function () {
   'use strict';
 
@@ -387,7 +387,7 @@
     subject: 'english',
     data: DATA,
     loadError: '資料載入失敗，請確認 assets/ 資料夾裡的 data.js、core.js、companions.js、ui.js、subject.js 都在。',
-    titleSuffix: '國小英語群島',
+    titleSuffix: '國小學習群島',
     legacyHash: true,
     sailOnIslandClick: true,
     unitListUsesHash: true,

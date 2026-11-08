@@ -1,4 +1,4 @@
-/* 國小英語群島 — 科目殼層：共用 hub／航線 UI／挑戰表／儲存流程；遊戲模式由各科注入 */
+/* 國小學習群島 — 科目殼層：共用 hub／航線 UI／挑戰表／儲存流程；遊戲模式由各科注入 */
 (function () {
   'use strict';
 
@@ -148,7 +148,7 @@
       C.setLastRoute(state.grade, state.semester);
       state.progress = C.loadProgress(state.grade, state.semester);
       state.player = C.playerNameFor(state.grade);
-      document.title = label() + '｜' + (cfg.titleSuffix || '國小英語群島');
+      document.title = label() + '｜' + (cfg.titleSuffix || '國小學習群島');
       el.gradeBadge.textContent = label();
       if (el.crumbRoute) el.crumbRoute.textContent = label();
       var track = TRACK(state.grade);

@@ -1,6 +1,6 @@
-/* 國小英語群島 — Service Worker（scope = 本檔所在目錄，GitHub Pages 為 /kid-game/） */
+/* 國小學習群島 — Service Worker（scope = 本檔所在目錄，GitHub Pages 為 /kid-game/） */
 /* 每次部署請遞增 CACHE_VERSION，舊快取會在 activate 時刪除 */
-var CACHE_VERSION = 'isles-shell-v1';
+var CACHE_VERSION = 'isles-shell-v2';
 var SHELL_CACHE = CACHE_VERSION + '-shell';
 var RUNTIME_CACHE = CACHE_VERSION + '-runtime';
 

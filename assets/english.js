@@ -1,417 +1,26 @@
-/* 國小英語群島 — 英文科：年級學期選單（english/index.html）與航線頁（english/{年級-學期}/index.html） */
+/* 國小英語群島 — 英文科：資料與遊戲模式；hub／航線殼層見 subject.js */
 (function () {
   'use strict';
 
-  var C = window.IslesCore;
-  var P = window.Companions;
   var DATA = window.ENGLISH_ISLES_DATA;
-  if (!C || !P || !DATA) {
-    document.body.innerHTML = '<p style="padding:2rem">資料載入失敗，請確認 assets/ 資料夾裡的 data.js、core.js、companions.js 都在。</p>';
+  if (!window.IslesSubject) {
+    document.body.innerHTML = '<p style="padding:2rem">載入失敗：缺少 subject.js。</p>';
     return;
   }
-  C.setSubject('english');
-  var $ = C.$, $$ = C.$$, escapeHtml = C.escapeHtml, escapeAttr = C.escapeAttr, shuffle = C.shuffle;
-  var GRADE_LABEL = C.GRADE_LABEL;
 
-  C.migrateOldName();
-  $$('[data-note]').forEach(function (n) { n.textContent = DATA.meta.note; });
-
-  // ---------- 島嶼插圖：島上站著這座島的小夥伴 ----------
-  function islandSVG(isl, seed) {
-    var c = isl.color || '#2a9d8f';
-    var c2 = C.shade(c, 20);
-    var s = seed || 1;
-    var bump = 8 + (s % 5) * 2;
-    var buddy = P.forIsland(isl.id).id;
-    return '<svg class="art" viewBox="0 0 280 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
-      '<ellipse cx="140" cy="108" rx="110" ry="10" fill="#7ec8e3" opacity=".45"/>' +
-      '<path d="M40 100 C55 ' + (70 - bump) + ' 90 ' + (35 + (s % 7)) + ' 140 ' + (32 + (s % 5)) + ' C190 ' + (35 + (s % 7)) + ' 225 ' + (70 - bump) + ' 240 100 Z" fill="' + c + '"/>' +
-      '<path d="M60 100 C75 ' + (78 - bump / 2) + ' 105 55 140 ' + (52 + (s % 3)) + ' C175 55 205 ' + (78 - bump / 2) + ' 220 100 Z" fill="' + c2 + '"/>' +
-      '<circle cx="' + (70 + (s % 30)) + '" cy="' + (72 + (s % 8)) + '" r="8" fill="#ffd6a5" opacity=".85"/>' +
-      '<text x="' + (205 - (s % 20)) + '" y="86" text-anchor="middle" font-size="22">' + (isl.symbol || '🏝️') + '</text>' +
-      P.companionAt(buddy, 108, 2, 0.64) +
-      '</svg>';
-  }
-  function miniIsleSVG(isl, i) {
-    var c = isl.color || '#2a9d8f';
-    return '<svg class="mini-art" viewBox="0 0 80 56" aria-hidden="true">' +
-      '<ellipse cx="40" cy="50" rx="30" ry="5" fill="#7ec8e3" opacity=".4"/>' +
-      '<path d="M12 48 C20 36 28 30 40 28 C52 30 60 36 68 48 Z" fill="' + c + '"/>' +
-      P.companionAt(P.forIsland(isl.id).id, 24 + (i % 3) * 2, -2, 0.33, i % 2 ? 'happy' : 'normal') +
-      '</svg>';
-  }
-
-  var TRACK = function (g) {
-    return g <= 2 ? { text: '先修準備', cls: 'warmup' } : g === 6 ? { text: '衔接國中', cls: 'bridge' } : { text: '課綱進度', cls: '' };
-  };
-  // 每個年級一位帶隊小夥伴
-  var GRADE_BUDDY = ['', 'chirp', 'sprout', 'drop', 'ember', 'puff', 'luna'];
-
-  // =====================================================================
-  //  年級 × 學期選單（english/index.html）
-  // =====================================================================
-  function initHub() {
-    var legacy = C.legacyHashRoute(location.hash);
-    if (legacy) { location.replace(legacy + '/index.html'); return; }
-
-    var grid = $('#grade-grid');
-    try {
-      var path = location.pathname || '';
-      if (path && !/\/$/i.test(path) && !/index\.html$/i.test(path)) {
-        history.replaceState(null, '', path + '/' + (location.search || '') + (location.hash || ''));
-      }
-    } catch (e) { /* ignore */ }
-    var last = C.lastRoute();
-    grid.innerHTML = [1, 2, 3, 4, 5, 6].map(function (g) {
-      var track = TRACK(g);
-      var name = C.playerNameFor(g);
-      var isLast = last.indexOf(g + '-') === 0;
-      var buttons = [1, 2].map(function (sem) {
-        var rk = C.routeKey(g, sem);
-        var rm = DATA.routeMeta[rk] || {};
-        var st = C.starsForRoute(g, sem);
-        var label = sem === 1 ? '上學期' : '下學期';
-        var meta = (rm.newWords || 0) + ' 新字・' + (rm.grammar || 0) + ' 句型';
-        if (g === 6) meta = '衔接文法・複習島';
-        else if (rm.reviewLessons) meta += '・複習 ' + rm.reviewLessons + ' 關';
-        var pct = st.all ? Math.round((st.got / st.all) * 100) : 0;
-        return '<a class="sem-btn' + (last === rk ? ' is-last' : '') + '" href="' + rk + '/index.html" data-route="' + rk + '">' +
-          '<strong>' + label + (last === rk ? ' <span class="last-tag">上次玩到這裡</span>' : '') + '</strong>' +
-          '<span class="sem-meta">' + meta + '</span>' +
-          '<span class="sem-stars">' + P.partnerBall(16, st.got > 0) + ' ★ ' + st.got + '/' + st.all + '</span>' +
-          '<span class="sem-bar" aria-hidden="true"><span style="width:' + pct + '%"></span></span>' +
-          '</a>';
-      }).join('');
-      return '<article class="grade-card' + (isLast ? ' is-last' : '') + '">' +
-        '<div class="grade-card-head">' +
-          P.companionSvg(GRADE_BUDDY[g], { size: 54, className: 'grade-buddy' }) +
-          '<h2>' + GRADE_LABEL[g] + '年級' + (name ? '<small>・' + escapeHtml(name) + '</small>' : '') + '</h2>' +
-          '<span class="grade-track ' + track.cls + '">' + track.text + '</span>' +
-        '</div>' +
-        '<div class="sem-row">' + buttons + '</div>' +
-        '</article>';
-    }).join('');
-
-    // 學期卡是真正的 <a href>：不 preventDefault、不蓋開船遮罩（Android 安全）。
-  }
-
-  // =====================================================================
-  //  航線頁（english/2-1/index.html 等）
-  // =====================================================================
-  function initRoute(routeStr) {
-    var r = C.parseRoute(routeStr);
-    if (!r || !DATA.lessonsByRoute[routeStr]) { location.replace('../index.html'); return; }
+  function englishPlay(api) {
+    var C = api.C, P = api.P, DATA = api.data;
+    var $ = api.$, $$ = api.$$, shuffle = C.shuffle;
+    var escapeHtml = api.escapeHtml, escapeAttr = api.escapeAttr;
+    var el = api.el, state = api.state;
+    var resultHtml = api.resultHtml, bindResult = api.bindResult, awardModeStar = api.awardModeStar;
 
     var wordById = {}; DATA.words.forEach(function (w) { wordById[w.id] = w; });
     var grammarById = {}; DATA.grammar.forEach(function (g) { grammarById[g.id] = g; });
 
-    var state = {
-      grade: r.grade,
-      semester: r.semester,
-      player: '',
-      progress: {},
-      view: 'home',
-      islandId: null,
-      challenge: null
-    };
-
-    var views = { home: $('#view-home'), island: $('#view-island') };
-    var el = {
-      gradeBadge: $('#grade-badge'),
-      starGot: $('#star-got'),
-      starAll: $('#star-all'),
-      starBall: $('#star-ball'),
-      playerHello: $('#player-hello'),
-      routeTitle: $('#route-title'),
-      routeLead: $('#route-lead'),
-      routeTrack: $('#route-track'),
-      routeBuddies: $('#route-buddies'),
-      crumbRoute: $('#crumb-route'),
-      islandGrid: $('#island-grid'),
-      unitList: $('#unit-list'),
-      islandHero: $('#island-hero'),
-      lessonMap: $('#lesson-map'),
-      challenge: $('#challenge'),
-      chTitle: $('#ch-title'),
-      chKicker: $('#ch-kicker'),
-      chBuddy: $('#ch-buddy'),
-      modeTabs: $('#mode-tabs'),
-      chBody: $('#ch-body'),
-      chFoot: $('#ch-foot'),
-      playerModal: $('#player-modal'),
-      playerName: $('#player-name'),
-      playerTitleGrade: $('#player-grade')
-    };
-
-    function label() { return C.routeLabel(state.grade, state.semester); }
-    function lessonsForRoute() { return DATA.lessonsByRoute[C.routeKey(state.grade, state.semester)] || {}; }
-    function visibleIslands() {
-      var map = lessonsForRoute();
-      return DATA.islands.filter(function (isl) { return (map[isl.id] || []).length > 0; });
-    }
-    function modesForLesson(L) { return C.modesForLessonAtGrade(L, state.grade); }
-    function maxStars(L) { return modesForLesson(L).length; }
-    function lessonStars(L) { var p = state.progress[L.id]; return (p && p.stars) || 0; }
-    function findLesson(id) {
-      var map = lessonsForRoute();
-      for (var k in map) {
-        for (var i = 0; i < map[k].length; i++) if (map[k][i].id === id) return map[k][i];
-      }
-      return null;
-    }
-    function islandOfLesson(id) {
-      var map = lessonsForRoute();
-      for (var k in map) if (map[k].some(function (L) { return L.id === id; })) return k;
-      return null;
-    }
-    function totalStars() {
-      var got = 0, all = 0, map = lessonsForRoute();
-      visibleIslands().forEach(function (isl) {
-        map[isl.id].forEach(function (L) { all += maxStars(L); got += Math.min(lessonStars(L), maxStars(L)); });
-      });
-      return { got: got, all: all };
-    }
-    function islandStars(id) {
-      var lessons = lessonsForRoute()[id] || [];
-      var got = 0, all = 0;
-      lessons.forEach(function (L) { all += maxStars(L); got += Math.min(lessonStars(L), maxStars(L)); });
-      return { got: got, all: all, count: lessons.length };
-    }
-    function updateStarPill() {
-      var t = totalStars();
-      el.starGot.textContent = t.got;
-      el.starAll.textContent = t.all;
-      if (el.starBall) el.starBall.innerHTML = P.partnerBall(22, t.got > 0);
-    }
-    function saveProgress() { C.saveProgress(state.grade, state.semester, state.progress); }
-    function awardModeStar(lessonId, modeId) {
-      var lesson = findLesson(lessonId);
-      if (!lesson) return;
-      var p = state.progress[lessonId] || { modes: {}, stars: 0 };
-      p.modes = p.modes || {};
-      if (!p.modes[modeId]) {
-        p.modes[modeId] = true;
-        p.stars = Object.keys(p.modes).length;
-        state.progress[lessonId] = p;
-        saveProgress();
-      } else {
-        state.progress[lessonId] = p;
-      }
-      updateStarPill();
-    }
-    function updatePlayerHello() {
-      el.playerHello.textContent = state.player ? '你好，' + state.player + '！' : '你好！';
-    }
-
-    // ---------- 進入航線 ----------
-    C.setLastRoute(state.grade, state.semester);
-    state.progress = C.loadProgress(state.grade, state.semester);
-    state.player = C.playerNameFor(state.grade);
-    document.title = label() + '｜國小英語群島';
-    el.gradeBadge.textContent = label();
-    if (el.crumbRoute) el.crumbRoute.textContent = label();
-    var track = TRACK(state.grade);
-    if (el.routeTrack) { el.routeTrack.textContent = track.text; el.routeTrack.className = 'grade-track ' + track.cls; }
-    updatePlayerHello();
-
-    function showView(name) {
-      Object.keys(views).forEach(function (k) { views[k].hidden = k !== name; });
-      state.view = name;
-    }
-
-    // ---------- 群島首頁 ----------
-    function renderHome() {
-      showView('home');
-      var islands = visibleIslands();
-      el.routeTitle.textContent = label() + '・選一座島去玩';
-      var rm = DATA.routeMeta[C.routeKey(state.grade, state.semester)] || {};
-      var lead = state.grade === 6
-        ? '這學期沒有新的 300 字，練銜接國中的句型，再到複習島溫習。'
-        : '本學期新學 ' + (rm.newWords || 0) + ' 個字、' + (rm.grammar || 0) + ' 個句型。選一座島全部逛，或從下面挑一關。';
-      if (state.grade <= 2) lead += '（先修準備：正式英語多自三年級起）';
-      el.routeLead.textContent = lead;
-      if (el.routeBuddies) {
-        el.routeBuddies.innerHTML = islands.slice(0, 6).map(function (isl, i) {
-          return P.companionSvg(P.forIsland(isl.id).id, { size: 58, mood: i % 2 ? 'happy' : 'normal', decorative: false });
-        }).join('');
-      }
-      el.islandGrid.innerHTML = islands.map(function (isl, i) {
-        var st = islandStars(isl.id);
-        var buddy = P.forIsland(isl.id);
-        return '<button type="button" class="island-card' + (isl.review ? ' is-review' : '') + '" data-island="' + isl.id + '" style="--accent:' + isl.color + '">' +
-          islandSVG(isl, i + 1) +
-          '<h3>' + escapeHtml(isl.name) + '</h3>' +
-          '<p class="tag">' + escapeHtml(isl.tagline) + '</p>' +
-          '<p class="buddy-line">探險夥伴：' + escapeHtml(buddy.name) + '<span class="type-chip" style="--tc:' + buddy.color + '">' + escapeHtml(buddy.type) + '</span></p>' +
-          '<div class="meta"><span>' + st.count + ' 關</span><span class="stars">★ ' + st.got + '/' + st.all + '</span></div>' +
-          '</button>';
-      }).join('');
-
-      var rows = [];
-      var map = lessonsForRoute();
-      islands.forEach(function (isl) { map[isl.id].forEach(function (L) { rows.push({ isl: isl, L: L }); }); });
-      el.unitList.innerHTML = rows.map(function (row) {
-        var isl = row.isl, L = row.L;
-        var max = maxStars(L);
-        var got = Math.min(lessonStars(L), max);
-        var icon = L.type === 'grammar' ? '💬' : L.review ? '🔁' : isl.symbol;
-        return '<button type="button" class="unit-row' + (L.review ? ' is-review' : '') + '" data-island="' + isl.id + '" data-lesson="' + escapeAttr(L.id) + '">' +
-          '<span class="dot" style="background:' + isl.color + '33">' + icon + '</span>' +
-          '<span class="info"><strong>' + escapeHtml(L.name) + '</strong><span>' + escapeHtml(isl.name) + ' · ' + escapeHtml(L.tagline) + '</span></span>' +
-          '<span class="row-stars">★ ' + got + '/' + max + '</span>' +
-          '</button>';
-      }).join('');
-      updateStarPill();
-    }
-
-    function renderIsland(islandId) {
-      var isl = DATA.islands.find(function (x) { return x.id === islandId; });
-      var lessons = (isl && lessonsForRoute()[islandId]) || [];
-      if (!isl || !lessons.length) { setHash(''); return; }
-      state.islandId = islandId;
-      showView('island');
-      var st = islandStars(islandId);
-      var buddy = P.forIsland(islandId);
-      el.islandHero.innerHTML =
-        '<div class="art">' + islandSVG(isl, 3) + '</div>' +
-        '<div class="hero-text">' +
-          '<h1>' + escapeHtml(isl.name) + '</h1>' +
-          '<p>' + escapeHtml(isl.tagline) + ' · ★ ' + st.got + '/' + st.all + '</p>' +
-          '<p class="bubble">' + escapeHtml(buddy.name) + '：「' + escapeHtml(buddy.hi) + '」</p>' +
-        '</div>';
-      el.lessonMap.innerHTML = lessons.map(function (L, i) {
-        var max = maxStars(L);
-        var got = Math.min(lessonStars(L), max);
-        return '<button type="button" class="lesson-isle' + (L.review ? ' is-review' : '') + '" data-lesson="' + escapeAttr(L.id) + '" style="--accent:' + isl.color + '">' +
-          miniIsleSVG(isl, i) +
-          '<strong>' + escapeHtml(L.name) + '</strong>' +
-          '<span class="ltag">' + escapeHtml(L.tagline) + '</span>' +
-          '<span class="lstars">★ ' + got + '/' + max + '</span>' +
-          '</button>';
-      }).join('');
-      updateStarPill();
-      window.scrollTo(0, 0);
-    }
-
-    // ---------- 頁內小路由：#island/hello ----------
-    function parseHash() {
-      var h = (location.hash || '').replace(/^#/, '');
-      if (!h || h === 'home') return { view: 'home' };
-      if (h.indexOf('island/') === 0) return { view: 'island', islandId: h.slice(7) };
-      var topic = decodeURIComponent(h);
-      var map = lessonsForRoute();
-      for (var i = 0; i < DATA.islands.length; i++) {
-        var isl = DATA.islands[i];
-        var les = map[isl.id] || [];
-        if (isl.id === topic) return { view: 'island', islandId: isl.id };
-        if (les.some(function (L) { return L.topic === topic || L.id === topic || L.name.indexOf(topic) >= 0; })) {
-          return { view: 'island', islandId: isl.id };
-        }
-      }
-      return { view: 'home' };
-    }
-    function setHash(path) {
-      var next = path ? '#' + path : '';
-      if ((location.hash || '') === next) { onRoute(); return; }
-      if (!path) {
-        history.pushState(null, '', location.pathname + location.search);
-        onRoute();
-      } else {
-        location.hash = path;
-      }
-    }
-    function onRoute() {
-      var rr = parseHash();
-      if (rr.view === 'island') renderIsland(rr.islandId);
-      else renderHome();
-    }
-    window.addEventListener('hashchange', onRoute);
-    window.addEventListener('popstate', onRoute);
-
-    function sailThen(fn) {
-      var sail = $('#sail-overlay');
-      if (!sail || C.reducedMotion()) { fn(); return; }
-      sail.hidden = false;
-      var done = false;
-      function finish() {
-        if (done) return;
-        done = true;
-        if (C.hideSailOverlay) C.hideSailOverlay(sail); else sail.hidden = true;
-        fn();
-      }
-      sail.onclick = finish;
-      setTimeout(finish, 500);
-      setTimeout(function () { if (!done) finish(); }, 1400);
-    }
-
-    // ---------- 挑戰 ----------
-    function openChallenge(lessonId, preferredMode) {
-      var lesson = findLesson(lessonId);
-      if (!lesson) return;
-      var modes = modesForLesson(lesson);
-      var mode = preferredMode && modes.some(function (m) { return m.id === preferredMode; }) ? preferredMode : modes[0].id;
-      state.challenge = { lesson: lesson, mode: mode };
-      el.challenge.hidden = false;
-      el.chTitle.textContent = lesson.name;
-      el.chKicker.textContent = lesson.type === 'grammar' ? '句型挑戰' : '單字挑戰';
-      var iid = islandOfLesson(lessonId);
-      if (el.chBuddy) el.chBuddy.innerHTML = P.companionSvg(P.forIsland(iid).id, { size: 48 });
-      el.modeTabs.innerHTML = modes.map(function (m) {
-        var earned = state.progress[lesson.id] && state.progress[lesson.id].modes && state.progress[lesson.id].modes[m.id];
-        return '<button type="button" class="mode-tab" role="tab" data-mode="' + m.id + '" aria-selected="' + (m.id === mode) + '">' +
-          escapeHtml(m.label) + (earned ? ' ★' : '') + '</button>';
-      }).join('');
-      el.chFoot.hidden = true;
-      startMode(lesson, mode);
-      $('#btn-close-ch').focus();
-    }
-    function closeChallenge() {
-      state.challenge = null;
-      el.challenge.hidden = true;
-      C.stopSpeak();
-      if (state.view === 'island' && state.islandId) renderIsland(state.islandId);
-      else renderHome();
-    }
     function lessonWords(lesson) {
       return (lesson.wordIds || []).map(function (id) { return wordById[id]; }).filter(Boolean);
     }
-    function refreshTabs(lesson) {
-      $$('.mode-tab', el.modeTabs).forEach(function (t) {
-        var earned = state.progress[lesson.id] && state.progress[lesson.id].modes && state.progress[lesson.id].modes[t.dataset.mode];
-        var m = modesForLesson(lesson).find(function (x) { return x.id === t.dataset.mode; });
-        if (m) t.textContent = m.label + (earned ? ' ★' : '');
-      });
-    }
-    function startMode(lesson, mode) {
-      state.challenge.mode = mode;
-      $$('.mode-tab', el.modeTabs).forEach(function (t) {
-        t.setAttribute('aria-selected', t.dataset.mode === mode ? 'true' : 'false');
-      });
-      el.chFoot.hidden = true;
-      el.chBody.innerHTML = '';
-      if (lesson.type === 'grammar') runGrammar(lesson);
-      else if (mode === 'match') runMatch(lesson);
-      else if (mode === 'scramble') runScramble(lesson);
-      else runQuiz(lesson, mode);
-    }
-    function resultHtml(pass, title, line) {
-      var buddy = state.challenge ? P.forIsland(islandOfLesson(state.challenge.lesson.id)).id : 'chirp';
-      return '<div class="result">' +
-        '<div class="result-buddy">' + P.companionSvg(buddy, { size: 96, mood: pass ? 'happy' : 'normal', className: pass ? 'cheer' : '' }) + '</div>' +
-        '<div class="big">' + (pass ? '⭐' : '💪') + '</div>' +
-        '<h3>' + title + '</h3>' +
-        '<p>' + line + '</p>' +
-        '<div class="btn-row">' +
-          '<button type="button" class="btn primary" id="retry-mode">再玩一次</button>' +
-          '<button type="button" class="btn secondary" id="close-after">回到地圖</button>' +
-        '</div></div>';
-    }
-    function bindResult(lesson, mode) {
-      refreshTabs(lesson);
-      $('#retry-mode').onclick = function () { startMode(lesson, mode); };
-      $('#close-after').onclick = function () { closeChallenge(); };
-    }
-
     // ---- 看英選中 / 看中選英 ----
     function runQuiz(lesson, mode) {
       var words = shuffle(lessonWords(lesson));
@@ -760,72 +369,69 @@
       return shuffle(items).slice(0, 6);
     }
 
-    // ---------- 事件 ----------
-    $('#btn-back-home').addEventListener('click', function () { setHash(''); });
-    $('#btn-close-ch').addEventListener('click', closeChallenge);
-    $('#btn-player').addEventListener('click', openPlayerModal);
-    $('#btn-close-player').addEventListener('click', function () { el.playerModal.hidden = true; });
 
-    el.islandGrid.addEventListener('click', function (e) {
-      var card = e.target.closest('[data-island]');
-      if (!card) return;
-      var id = card.dataset.island;
-      sailThen(function () { setHash('island/' + id); });
-    });
-    el.unitList.addEventListener('click', function (e) {
-      var row = e.target.closest('[data-lesson]');
-      if (!row) return;
-      var lesson = row.dataset.lesson;
-      setHash('island/' + row.dataset.island);
-      setTimeout(function () { openChallenge(lesson); }, 50);
-    });
-    el.lessonMap.addEventListener('click', function (e) {
-      var btn = e.target.closest('[data-lesson]');
-      if (btn) openChallenge(btn.dataset.lesson);
-    });
-    el.modeTabs.addEventListener('click', function (e) {
-      var tab = e.target.closest('[data-mode]');
-      if (tab && state.challenge) startMode(state.challenge.lesson, tab.dataset.mode);
-    });
-
-    function openPlayerModal() {
-      el.playerName.value = C.playerNameFor(state.grade) || '';
-      if (el.playerTitleGrade) el.playerTitleGrade.textContent = GRADE_LABEL[state.grade] + '年級';
-      el.playerModal.hidden = false;
-      el.playerName.focus();
-    }
-    $('#btn-save-player').addEventListener('click', function () {
-      var name = el.playerName.value.trim().slice(0, 12);
-      state.player = name;
-      C.savePlayerName(state.grade, name);
-      updatePlayerHello();
-      el.playerModal.hidden = true;
-    });
-    $('#btn-reset-progress').addEventListener('click', function () {
-      if (confirm('確定要清除「' + label() + '」的星星進度嗎？')) {
-        state.progress = {};
-        saveProgress();
-        updateStarPill();
-        if (state.view === 'island') renderIsland(state.islandId); else renderHome();
-        alert('已重置「' + label() + '」進度。');
-      }
-    });
-    document.addEventListener('keydown', function (e) {
-      if (e.key !== 'Escape') return;
-      if (!el.challenge.hidden) closeChallenge();
-      else if (!el.playerModal.hidden) el.playerModal.hidden = true;
-    });
-
-    // 第一次來、還沒取名字：小小提醒
-    if (!state.player) {
-      var hint = $('#name-hint');
-      if (hint) hint.hidden = false;
+    function startMode(lesson, mode) {
+      if (lesson.type === 'grammar') runGrammar(lesson);
+      else if (mode === 'match') runMatch(lesson);
+      else if (mode === 'scramble') runScramble(lesson);
+      else runQuiz(lesson, mode);
     }
 
-    onRoute();
+    return {
+      startMode: startMode,
+      onCloseChallenge: function () { C.stopSpeak(); }
+    };
   }
 
-  // ---------- 啟動 ----------
-  if (window.ISLES_ROUTE) initRoute(String(window.ISLES_ROUTE));
-  else if (document.getElementById('grade-grid')) initHub();
+  window.IslesSubject.boot({
+    subject: 'english',
+    data: DATA,
+    loadError: '資料載入失敗，請確認 assets/ 資料夾裡的 data.js、core.js、companions.js、ui.js、subject.js 都在。',
+    titleSuffix: '國小英語群島',
+    legacyHash: true,
+    sailOnIslandClick: true,
+    unitListUsesHash: true,
+    gradeBuddy: ['', 'chirp', 'sprout', 'drop', 'ember', 'puff', 'luna'],
+    track: function (g) {
+      return g <= 2 ? { text: '先修準備', cls: 'warmup' } : g === 6 ? { text: '衔接國中', cls: 'bridge' } : { text: '課綱進度', cls: '' };
+    },
+    hubMeta: function (rm, g) {
+      var meta = (rm.newWords || 0) + ' 新字・' + (rm.grammar || 0) + ' 句型';
+      if (g === 6) meta = '衔接文法・複習島';
+      else if (rm.reviewLessons) meta += '・複習 ' + rm.reviewLessons + ' 關';
+      return meta;
+    },
+    routeLead: function (rm, grade) {
+      var lead = grade === 6
+        ? '這學期沒有新的 300 字，練銜接國中的句型，再到複習島溫習。'
+        : '本學期新學 ' + (rm.newWords || 0) + ' 個字、' + (rm.grammar || 0) + ' 個句型。選一座島全部逛，或從下面挑一關。';
+      if (grade <= 2) lead += '（先修準備：正式英語多自三年級起）';
+      return lead;
+    },
+    lessonIcon: function (L, isl) {
+      return L.type === 'grammar' ? '💬' : L.review ? '🔁' : isl.symbol;
+    },
+    challengeKicker: function (lesson) {
+      return lesson.type === 'grammar' ? '句型挑戰' : '單字挑戰';
+    },
+    parseHashExtra: function (h, map, DATA) {
+      var topic = decodeURIComponent(h);
+      for (var i = 0; i < DATA.islands.length; i++) {
+        var isl = DATA.islands[i];
+        var les = map[isl.id] || [];
+        if (isl.id === topic) return { view: 'island', islandId: isl.id };
+        if (les.some(function (L) { return L.topic === topic || L.id === topic || L.name.indexOf(topic) >= 0; })) {
+          return { view: 'island', islandId: isl.id };
+        }
+      }
+      return null;
+    },
+    resetConfirm: function (label) {
+      return '確定要清除「' + label + '」的星星進度嗎？';
+    },
+    resetAlert: function (label) {
+      return '已重置「' + label + '」進度。';
+    },
+    play: englishPlay
+  });
 })();

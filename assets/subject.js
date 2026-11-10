@@ -25,14 +25,9 @@
     // =====================================================================
     //  年級 × 學期選單
     // =====================================================================
-    function initHub() {
-      if (cfg.legacyHash) {
-        var legacy = C.legacyHashRoute(location.hash);
-        if (legacy) { location.replace(legacy + '/index.html'); return; }
-      }
+    function renderHubGrid() {
       var grid = $('#grade-grid');
       if (!grid) return;
-      UI.canonicalizeHubPath();
       var last = C.lastRoute();
       grid.innerHTML = [1, 2, 3, 4, 5, 6].map(function (g) {
         var track = TRACK(g);
@@ -62,6 +57,24 @@
           '</article>';
       }).join('');
       // 學期卡是真正的 <a href>：不 preventDefault、不蓋開船遮罩（Android 安全）。
+    }
+
+    function initHub() {
+      if (cfg.legacyHash) {
+        var legacy = C.legacyHashRoute(location.hash);
+        if (legacy) { location.replace(legacy + '/index.html'); return; }
+      }
+      if (!$('#grade-grid')) return;
+      UI.canonicalizeHubPath();
+      renderHubGrid();
+
+      if (UI.mountPlayerChrome) {
+        UI.mountPlayerChrome({
+          note: DATA.meta && DATA.meta.note,
+          onSwitch: function () { renderHubGrid(); },
+          onSave: function () { renderHubGrid(); }
+        });
+      }
     }
 
     // =====================================================================
@@ -375,47 +388,41 @@
       var closeCh = $('#btn-close-ch');
       if (closeCh) closeCh.addEventListener('click', closeChallenge);
 
-      function openPlayerModal() {
-        el.playerName.value = C.playerNameFor(state.grade) || state.player || '';
-        if (el.playerTitleGrade) el.playerTitleGrade.textContent = GRADE_LABEL[state.grade] + '年級';
-        var reset = $('#btn-reset-progress');
-        if (reset && cfg.resetButtonLabel) reset.textContent = cfg.resetButtonLabel(label());
-        el.playerModal.hidden = false;
-        el.playerName.focus();
-      }
-      function closePlayerModal() { el.playerModal.hidden = true; }
-
-      var btnPlayer = $('#btn-player');
-      if (btnPlayer) btnPlayer.addEventListener('click', openPlayerModal);
-      var btnClosePlayer = $('#btn-close-player');
-      if (btnClosePlayer) btnClosePlayer.addEventListener('click', closePlayerModal);
-      var btnSave = $('#btn-save-player');
-      if (btnSave) btnSave.addEventListener('click', function () {
-        var name = (el.playerName.value || '').trim().slice(0, 12);
-        state.player = name;
-        C.savePlayerName(state.grade, name);
-        updatePlayerHello();
-        closePlayerModal();
-        if (state.view === 'home') renderHome();
-      });
-      var btnReset = $('#btn-reset-progress');
-      if (btnReset) btnReset.addEventListener('click', function () {
-        var msg = cfg.resetConfirm
-          ? cfg.resetConfirm(label())
-          : ('確定要清除「' + label() + '」的星星進度嗎？');
-        if (!confirm(msg)) return;
-        state.progress = {};
-        saveProgress();
-        updateStarPill();
-        closePlayerModal();
-        onRoute();
-        if (cfg.resetAlert) alert(cfg.resetAlert(label()));
-      });
+      var playerChrome = UI.mountPlayerChrome ? UI.mountPlayerChrome({
+        grade: state.grade,
+        note: DATA.meta && DATA.meta.note,
+        onSave: function (g, name) {
+          if (g === state.grade) {
+            state.player = name;
+            updatePlayerHello();
+            if (state.view === 'island' && state.islandId) renderIsland(state.islandId);
+            else renderHome();
+          }
+          if (playerChrome) playerChrome.refresh();
+        },
+        reset: {
+          buttonLabel: function () {
+            return cfg.resetButtonLabel ? cfg.resetButtonLabel(label()) : ('重置「' + label() + '」進度');
+          },
+          confirm: function () {
+            return cfg.resetConfirm
+              ? cfg.resetConfirm(label())
+              : ('確定要清除「' + label() + '」的星星進度嗎？');
+          },
+          onReset: function () {
+            state.progress = {};
+            saveProgress();
+            updateStarPill();
+            onRoute();
+            if (cfg.resetAlert) alert(cfg.resetAlert(label()));
+          }
+        }
+      }) : null;
 
       document.addEventListener('keydown', function (e) {
         if (e.key !== 'Escape') return;
         if (el.challenge && !el.challenge.hidden) closeChallenge();
-        else if (el.playerModal && !el.playerModal.hidden) closePlayerModal();
+        else if (el.playerModal && !el.playerModal.hidden) el.playerModal.hidden = true;
       });
 
       if (!state.player && el.nameHint) el.nameHint.hidden = false;

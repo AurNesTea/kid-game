@@ -6,6 +6,7 @@
 
 - **GitHub Pages**：https://aurnestea.github.io/kid-game/
 - 本倉庫根目錄即為靜態網站（`index.html`、`assets/`、`english/`、`math/`），由 `master` 分支 `/` 根目錄提供。
+- 每次網站更新的內容與日期，請看 [`CHANGELOG.md`](./CHANGELOG.md)（更新紀錄）。
 
 ## 怎麼打開（本機）
 

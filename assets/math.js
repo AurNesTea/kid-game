@@ -39,7 +39,7 @@
 
     // ---- 一步一步算（提示階梯）----
     function runScaffold(lesson, pool) {
-      var list = shuffle(pool).slice(0, Math.min(4, pool.length));
+      var list = shuffle(pool).slice(0, Math.min(6, pool.length));
       var i = 0, correct = 0, hintLevel = 0, locked = false;
 
       function finish() {
@@ -109,7 +109,7 @@
 
     // ---- 數一數（具體物）----
     function runVisual(lesson, pool) {
-      var list = shuffle(pool).slice(0, Math.min(4, pool.length));
+      var list = shuffle(pool).slice(0, Math.min(6, pool.length));
       var i = 0, correct = 0, hintLevel = 0, locked = false;
       function finish() {
         var pass = correct / list.length >= 0.6;
@@ -167,7 +167,7 @@
 
     // ---- 應用題：先懂再算 ----
     function runWord(lesson, pool) {
-      var list = shuffle(pool).slice(0, Math.min(3, pool.length));
+      var list = shuffle(pool).slice(0, Math.min(4, pool.length));
       var i = 0, correct = 0;
 
       function finish() {
@@ -283,7 +283,7 @@
 
     // ---- 找出錯哪一行 ----
     function runError(lesson, pool) {
-      var list = shuffle(pool).slice(0, Math.min(3, pool.length));
+      var list = shuffle(pool).slice(0, Math.min(4, pool.length));
       var i = 0, correct = 0;
       function finish() {
         var pass = correct / list.length >= 0.6;
